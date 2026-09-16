@@ -1,0 +1,2109 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bussola</title>
+<meta name="description" content="Organizza itinerari, budget, checklist e prenotazioni per ogni viaggio.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5B4FF0">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bussola">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#F5F6FB; --surface:#FFFFFF; --surface-2:#EFF1F8;
+    --ink:#10121C; --ink-2:#565B72; --muted:#8B90A6;
+    --border:rgba(16,18,28,.08); --border-strong:rgba(16,18,28,.15);
+    --accent:#5B4FF0; --accent-strong:#4536DE; --accent-soft:#ECEAFE; --accent-ink:#4536DE;
+    --teal:#0EA5C7; --teal-soft:#E0F6FB; --teal-ink:#087691;
+    --plum:#E23F97; --plum-soft:#FDE7F3; --plum-ink:#B92A78;
+    --good:#12B76A; --warning:#DE8A05; --serious:#ec835a; --critical:#E5392B;
+    --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px;
+    --shadow: 0 1px 2px rgba(16,18,28,.04), 0 10px 24px -12px rgba(16,18,28,.14);
+    --shadow-lg: 0 6px 16px -4px rgba(16,18,28,.10), 0 28px 48px -24px rgba(16,18,28,.24);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0B0D16; --surface:#151827; --surface-2:#1C2033;
+      --ink:#F1F2F9; --ink-2:#B8BCD1; --muted:#80869C;
+      --border:rgba(241,242,249,.09); --border-strong:rgba(241,242,249,.17);
+      --accent:#8C81FF; --accent-strong:#A79DFF; --accent-soft:rgba(140,129,255,.16); --accent-ink:#B4ACFF;
+      --teal:#2FD3F0; --teal-soft:rgba(47,211,240,.14); --teal-ink:#7CE7F7;
+      --plum:#F472B6; --plum-soft:rgba(244,114,182,.15); --plum-ink:#F9A8D4;
+      --good:#27CC81; --warning:#FDB022; --serious:#ec835a; --critical:#F97066;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 16px 32px -16px rgba(0,0,0,.6);
+      --shadow-lg: 0 8px 20px -6px rgba(0,0,0,.5), 0 32px 56px -24px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0B0D16; --surface:#151827; --surface-2:#1C2033;
+    --ink:#F1F2F9; --ink-2:#B8BCD1; --muted:#80869C;
+    --border:rgba(241,242,249,.09); --border-strong:rgba(241,242,249,.17);
+    --accent:#8C81FF; --accent-strong:#A79DFF; --accent-soft:rgba(140,129,255,.16); --accent-ink:#B4ACFF;
+    --teal:#2FD3F0; --teal-soft:rgba(47,211,240,.14); --teal-ink:#7CE7F7;
+    --plum:#F472B6; --plum-soft:rgba(244,114,182,.15); --plum-ink:#F9A8D4;
+    --good:#27CC81; --warning:#FDB022; --serious:#ec835a; --critical:#F97066;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 16px 32px -16px rgba(0,0,0,.6);
+    --shadow-lg: 0 8px 20px -6px rgba(0,0,0,.5), 0 32px 56px -24px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{ font-family:"Bricolage Grotesque", "Manrope", system-ui, sans-serif; font-weight:700; letter-spacing:-.01em; text-wrap:balance; margin:0; }
+  .mono{ font-family:"JetBrains Mono", ui-monospace, "SFMono-Regular", monospace; font-variant-numeric:tabular-nums; }
+  button{ font-family:inherit; }
+  input,select,textarea{ font-family:inherit; font-size:.92rem; }
+  a{ color:var(--accent-strong); }
+  ::selection{ background:var(--accent-soft); }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+
+  /* ---------- layout shell ---------- */
+  .shell{ max-width:1180px; margin:0 auto; padding-inline:20px; padding-block:0 96px; }
+  .view-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    background:color-mix(in srgb, var(--paper) 90%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-top:1px solid var(--border); box-shadow:0 -8px 22px -14px rgba(16,18,28,.2);
+  }
+  .view-bar-inner{ max-width:1180px; margin:0 auto; padding:10px 20px; display:flex; gap:8px; justify-content:center; }
+  .view-btn{
+    appearance:none; border:1px solid transparent; background:transparent; color:var(--ink-2);
+    display:flex; align-items:center; gap:7px; padding:9px 20px; border-radius:var(--r-md); font-size:.84rem; font-weight:700; cursor:pointer;
+    transition:background .12s ease, color .12s ease;
+  }
+  .view-btn svg{ width:18px; height:18px; flex:none; }
+  .view-btn:hover{ background:var(--surface-2); color:var(--ink); }
+  .view-btn.active{ background:var(--accent-soft); color:var(--accent-ink); }
+  .view-count{
+    font-size:.68rem; font-weight:800; background:var(--surface-2); color:var(--ink-2); border-radius:99px; padding:1px 7px;
+  }
+  .view-btn.active .view-count{ background:rgba(255,255,255,.55); color:var(--accent-strong); }
+  @media (max-width:480px){ .view-btn span:not(.view-count){ display:none; } .view-btn{ padding:10px 16px; } }
+
+  /* ---------- print / export ---------- */
+  .print-only{ display:none; }
+  .print-title{ font-size:1.5rem; margin-bottom:2px; }
+  .print-meta{ font-size:.86rem; color:#444; margin-bottom:18px; }
+  .print-section{ margin-top:22px; }
+  .print-section h3{ font-size:1.02rem; border-bottom:1.5px solid #ccc; padding-bottom:5px; margin-bottom:10px; }
+  .print-day{ margin-bottom:10px; }
+  .print-day-head{ font-weight:800; font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .print-stop{ display:flex; gap:10px; font-size:.86rem; padding:3px 0; }
+  .print-stop .t{ font-family:monospace; width:48px; flex:none; color:#444; }
+  .print-table{ width:100%; border-collapse:collapse; font-size:.84rem; }
+  .print-table th, .print-table td{ text-align:left; padding:5px 8px; border-bottom:1px solid #ddd; }
+  .print-check{ font-size:.86rem; padding:2px 0; }
+  @media print{
+    .topbar, .shell aside, #view-bar, #notice-host, #modal-host, .trip-actions, .tabs, .add-form, .budget-editrow, .row-actions, .reminder-banner{
+      display:none !important;
+    }
+    .shell{ display:none !important; }
+    .print-only{ display:block; max-width:720px; margin:0 auto; color:#111; }
+  }
+  .topbar{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+    background:color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar-inner{
+    max-width:1180px; margin:0 auto; padding-inline:20px; padding-block:14px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark-tile{
+    width:40px; height:40px; flex:none; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--accent), var(--plum)); box-shadow:0 6px 16px -6px rgba(91,79,240,.55);
+  }
+  .brand-mark{ width:22px; height:22px; color:#fff; }
+  .brand-text h1{ font-size:1.4rem; letter-spacing:-.02em; }
+  .brand-text p{ margin:1px 0 0; font-size:.78rem; color:var(--muted); font-weight:500; }
+  .btn{
+    appearance:none; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink);
+    padding:10px 18px; border-radius:var(--r-md); font-size:.86rem; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px; transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .btn:hover{ border-color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow); }
+  .btn:active{ transform:translateY(0); }
+  .btn-primary{ background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 6px 16px -6px rgba(91,79,240,.5); }
+  .btn-primary:hover{ background:var(--accent-strong); border-color:var(--accent-strong); box-shadow:0 10px 22px -8px rgba(91,79,240,.6); }
+  .btn-ghost{ background:transparent; border-color:transparent; color:var(--ink-2); }
+  .btn-ghost:hover{ border-color:var(--border-strong); background:var(--surface-2); transform:none; box-shadow:none; }
+  .btn-danger{ background:transparent; border-color:var(--critical); color:var(--critical); }
+  .btn-danger:hover{ background:var(--critical); color:#fff; }
+  .btn-sm{ padding:7px 13px; font-size:.78rem; border-radius:var(--r-sm); }
+  .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+
+  .notice{
+    max-width:1180px; margin:14px auto 0; padding:11px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--border); border-radius:var(--r-md); font-size:.82rem; font-weight:500;
+  }
+  .notice button{ background:none; border:none; color:inherit; font-weight:700; cursor:pointer; font-size:.9rem; }
+
+  /* ---------- two column layout ---------- */
+  .layout{ display:grid; grid-template-columns:300px 1fr; gap:22px; margin-top:24px; align-items:start; }
+  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } }
+
+  /* ---------- trip rail ---------- */
+  .rail-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .rail-head h2{ font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-family:inherit; font-weight:800; }
+  .rail-count{ font-size:.72rem; color:var(--muted); font-weight:600; }
+  .trip-list{ display:flex; flex-direction:column; gap:10px; }
+
+  .rail-tools{ margin-bottom:12px; display:flex; flex-direction:column; gap:8px; }
+  .search-field{ position:relative; }
+  .search-field svg{ position:absolute; left:11px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--muted); pointer-events:none; }
+  .search-field input{
+    width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:99px; padding:8px 12px 8px 32px;
+    font-size:.82rem; color:var(--ink); transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .search-field input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .filter-pills{ display:flex; gap:6px; flex-wrap:wrap; }
+  .filter-pill{
+    appearance:none; border:1.5px solid var(--border-strong); background:var(--surface); color:var(--ink-2);
+    padding:5px 11px; border-radius:99px; font-size:.72rem; font-weight:700; cursor:pointer; transition:all .12s ease;
+  }
+  .filter-pill.active{ border-color:var(--accent); background:var(--accent); color:#fff; }
+  .filter-pill:not(.active):hover{ border-color:var(--accent); }
+  .list-empty-filtered{ text-align:center; color:var(--muted); font-size:.82rem; padding:20px 10px; }
+
+  .ticket{
+    position:relative; text-align:left; width:100%; border:1px solid var(--border); background:var(--surface);
+    border-radius:var(--r-lg); padding:15px 16px; cursor:pointer; box-shadow:var(--shadow); overflow:hidden;
+    display:flex; flex-direction:column; gap:9px; transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  }
+  .ticket:hover{ border-color:var(--border-strong); transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+  .ticket.active{ border-color:var(--accent); background:var(--accent-soft); box-shadow:var(--shadow-lg); }
+  .ticket-row1{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .ticket-name{ font-size:1rem; font-weight:700; line-height:1.25; font-family:"Bricolage Grotesque","Manrope",sans-serif; }
+  .dot{ width:9px; height:9px; border-radius:50%; flex:none; display:inline-block; }
+  .cat-svago{ background:var(--teal); } .cat-lavoro{ background:var(--accent); } .cat-altro{ background:var(--plum); }
+  .ticket-dest{ font-size:.8rem; color:var(--ink-2); font-weight:500; }
+  .ticket-row2{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .ticket-dates{ font-size:.72rem; color:var(--muted); }
+  .chip{
+    font-size:.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+    padding:4px 9px; border-radius:99px; white-space:nowrap;
+  }
+  .chip-futuro{ background:var(--accent-soft); color:var(--accent-ink); }
+  .chip-corso{ background:color-mix(in srgb, var(--good) 16%, transparent); color:var(--good); }
+  .chip-concluso{ background:var(--surface-2); color:var(--muted); }
+  .example-badge{ font-size:.62rem; font-weight:700; letter-spacing:.06em; color:var(--accent-ink); background:var(--accent-soft); border-radius:5px; padding:2px 6px; align-self:flex-start; }
+
+  .rail-empty, .empty-state{
+    border:1px dashed var(--border-strong); border-radius:var(--r-lg); padding:28px 18px; text-align:center; color:var(--ink-2);
+    background:var(--surface); display:flex; flex-direction:column; align-items:center; gap:10px;
+  }
+  .rail-empty svg, .empty-state svg{ width:34px; height:34px; color:var(--accent); }
+  .rail-empty p, .empty-state p{ margin:0; font-size:.85rem; }
+
+  /* ---------- dossier (main) ---------- */
+  .dossier{ min-width:0; }
+  .dossier-empty{ min-height:420px; display:flex; align-items:center; justify-content:center; }
+  .dossier-empty .empty-state{ max-width:340px; padding:44px 28px; }
+  .dossier-empty h3{ font-size:1.25rem; }
+
+  /* ---------- home dashboard ---------- */
+  .home-greet{ font-size:1.7rem; margin-bottom:4px; }
+  .home-sub{ color:var(--ink-2); font-size:.9rem; margin-bottom:20px; }
+  .home-section-title{ font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:800; margin:24px 0 10px; }
+  .spotlight{
+    background:linear-gradient(135deg, var(--accent), var(--plum)); border-radius:var(--r-xl); padding:26px 28px; color:#fff;
+    box-shadow:var(--shadow-lg); display:flex; justify-content:space-between; align-items:flex-end; gap:18px; flex-wrap:wrap;
+  }
+  .spotlight-eyebrow{ font-size:.7rem; text-transform:uppercase; letter-spacing:.09em; font-weight:800; opacity:.85; }
+  .spotlight-name{ font-size:1.6rem; color:#fff; margin-top:6px; }
+  .spotlight-meta{ margin-top:6px; font-size:.86rem; opacity:.9; }
+  .spotlight-count{ font-family:"Bricolage Grotesque","Manrope",sans-serif; font-size:2.6rem; font-weight:700; letter-spacing:-.02em; line-height:1; }
+  .spotlight-count-label{ font-size:.74rem; opacity:.85; margin-top:2px; text-align:right; }
+  .spotlight .btn-primary{ background:#fff; border-color:#fff; color:var(--accent-strong); box-shadow:none; }
+  .spotlight .btn-primary:hover{ background:#fff; opacity:.9; }
+  .ongoing-list{ display:flex; flex-direction:column; gap:10px; }
+  .ongoing-card{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-lg); padding:14px 18px; box-shadow:var(--shadow); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .ongoing-card:hover{ transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+  .backup-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .ongoing-card .ticket-name{ font-size:1.02rem; }
+
+  .feature-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:860px){ .feature-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .feature-grid{ grid-template-columns:1fr; } }
+  .feature-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .feature-icon{
+    width:38px; height:38px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; flex:none;
+  }
+  .feature-icon svg{ width:19px; height:19px; }
+  .feature-card h4{ font-size:.96rem; margin:0; }
+  .feature-card p{ margin:0; font-size:.82rem; color:var(--ink-2); line-height:1.45; }
+  .home-hero{
+    display:flex; align-items:center; gap:16px; margin-bottom:22px; padding-bottom:22px; border-bottom:1px solid var(--border);
+  }
+  .home-hero-mark{
+    width:52px; height:52px; border-radius:var(--r-lg); flex:none; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--accent), var(--plum)); box-shadow:0 6px 16px -6px rgba(91,79,240,.5);
+  }
+  .home-hero-mark svg{ width:27px; height:27px; color:#fff; }
+
+  .trip-header{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:24px 26px; box-shadow:var(--shadow); }
+  .trip-header-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  .trip-header h2.trip-title{ font-size:1.85rem; }
+  .trip-meta{ margin-top:8px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; color:var(--ink-2); font-size:.86rem; font-weight:500; }
+  .trip-meta .mono{ color:var(--ink-2); }
+  .trip-actions{ display:flex; gap:8px; }
+  .countdown{ margin-top:14px; font-size:.84rem; font-weight:700; color:var(--accent-ink); background:var(--accent-soft); display:inline-flex; padding:7px 13px; border-radius:99px; gap:8px; align-items:center; }
+  .trip-notes{ margin-top:12px; font-size:.86rem; color:var(--ink-2); white-space:pre-wrap; }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+  @media (max-width:680px){ .stat-grid{ grid-template-columns:repeat(2,1fr); } }
+  .stat-tile{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:14px 16px; box-shadow:var(--shadow); }
+  .stat-label{ font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:800; }
+  .stat-value{ margin-top:6px; font-family:"Bricolage Grotesque","Manrope",sans-serif; font-size:1.5rem; font-weight:700; letter-spacing:-.02em; }
+  .stat-sub{ margin-top:2px; font-size:.74rem; color:var(--ink-2); font-weight:600; }
+
+  .tabs{ display:inline-flex; gap:2px; margin-top:22px; padding:4px; background:var(--surface-2); border-radius:99px; max-width:100%; overflow-x:auto; }
+  .tab{
+    appearance:none; background:none; border:none; padding:9px 16px; font-size:.82rem; font-weight:700; color:var(--ink-2);
+    cursor:pointer; border-radius:99px; white-space:nowrap; transition:background .12s ease, color .12s ease;
+  }
+  .tab.active{ color:#fff; background:var(--accent); box-shadow:0 4px 12px -4px rgba(91,79,240,.5); }
+  .tab:not(.active):hover{ color:var(--ink); background:var(--surface); }
+  .tab-warn{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--warning); margin-left:5px; vertical-align:middle; }
+  .tab.active .tab-warn{ background:#fff; }
+  .reminder-banner{
+    display:flex; align-items:flex-start; gap:10px; background:color-mix(in srgb, var(--warning) 14%, transparent);
+    border:1px solid color-mix(in srgb, var(--warning) 35%, transparent); border-radius:var(--r-lg); padding:13px 15px; margin-bottom:14px;
+  }
+  .reminder-banner svg{ width:18px; height:18px; flex:none; color:var(--warning); margin-top:1px; }
+  .reminder-banner p{ margin:0; font-size:.84rem; color:var(--ink); line-height:1.4; }
+  .reminder-banner strong{ font-weight:800; }
+  .panel{ padding-top:20px; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px 20px; box-shadow:var(--shadow); }
+  .section-title{ font-size:.7rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:800; margin-bottom:12px; }
+
+  /* forms */
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:.72rem; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.04em; }
+  .field input, .field select, .field textarea{
+    background:var(--surface-2); border:1.5px solid transparent; border-radius:var(--r-sm); padding:9px 11px; color:var(--ink); transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .form-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .form-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+  .radio-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .radio-chip{ position:relative; }
+  .radio-chip input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+  .radio-chip span{
+    display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:99px; border:1.5px solid var(--border-strong);
+    font-size:.82rem; font-weight:700; color:var(--ink-2); cursor:pointer; transition:all .12s ease;
+  }
+  .radio-chip input:checked + span{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink); }
+  .radio-chip input:focus-visible + span{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .add-form{ border:1.5px dashed var(--border-strong); border-radius:var(--r-lg); padding:16px 18px; margin-top:18px; background:var(--surface-2); }
+
+  /* modal */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(9,11,20,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; overflow-y:auto; z-index:50; }
+  .modal{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:26px; width:100%; max-width:560px; box-shadow:var(--shadow-lg); }
+  .modal h3{ font-size:1.3rem; margin-bottom:18px; }
+
+  /* itinerary */
+  .day-group + .day-group{ margin-top:20px; }
+  .day-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:9px; }
+  .day-head .day-num{ font-size:.76rem; font-weight:800; color:var(--accent-ink); background:var(--accent-soft); padding:3px 10px; border-radius:99px; }
+  .day-head .day-date{ font-size:.82rem; color:var(--muted); font-weight:500; }
+  .stop{ display:flex; gap:12px; padding:11px 0; border-top:1px solid var(--border); }
+  .stop:first-child{ border-top:none; }
+  .stop-time{ flex:none; width:56px; font-size:.8rem; color:var(--accent-ink); font-weight:700; padding-top:1px; }
+  .stop-body{ flex:1; min-width:0; }
+  .stop-title{ font-weight:700; font-size:.9rem; }
+  .stop-note{ font-size:.8rem; color:var(--muted); margin-top:2px; }
+  .row-actions{ flex:none; display:flex; gap:6px; align-items:flex-start; }
+  .icon-btn{ background:none; border:none; color:var(--muted); cursor:pointer; padding:5px; border-radius:8px; display:flex; }
+  .icon-btn:hover{ color:var(--critical); background:var(--surface-2); }
+  .icon-btn svg{ width:15px; height:15px; }
+
+  /* budget */
+  .budget-summary{ display:grid; grid-template-columns:1fr auto; gap:6px 14px; align-items:baseline; }
+  .budget-figure{ font-family:"Bricolage Grotesque","Manrope",sans-serif; font-size:2rem; font-weight:700; letter-spacing:-.02em; }
+  .budget-figure .of{ font-size:1rem; color:var(--muted); font-family:"Manrope", sans-serif; font-weight:600; }
+  .status-label{ display:inline-flex; align-items:center; gap:6px; font-size:.78rem; font-weight:800; }
+  .status-dot{ width:8px; height:8px; border-radius:50%; }
+  .meter{ margin-top:12px; height:9px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .meter > div{ height:100%; border-radius:99px; transition:width .3s ease; }
+  .budget-editrow{ display:flex; align-items:center; gap:8px; margin-top:16px; font-size:.8rem; color:var(--ink-2); font-weight:600; }
+  .budget-editrow input{ width:120px; }
+
+  .cat-breakdown{ display:flex; flex-direction:column; gap:11px; margin-top:6px; }
+  .cat-row{ display:grid; grid-template-columns:104px 1fr auto; align-items:center; gap:10px; }
+  .cat-row .cat-name{ font-size:.8rem; color:var(--ink-2); font-weight:600; }
+  .cat-row .cat-amt{ font-size:.8rem; font-weight:700; }
+  .cat-bar-track{ height:7px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .cat-bar-fill{ height:100%; background:linear-gradient(90deg, var(--accent), var(--plum)); border-radius:99px; }
+
+  table.list-table{ width:100%; border-collapse:collapse; margin-top:4px; }
+  table.list-table th{ text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:800; padding:8px 8px; border-bottom:1px solid var(--border); }
+  table.list-table td{ padding:10px 8px; font-size:.84rem; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.list-table tr:last-child td{ border-bottom:none; }
+  .table-wrap{ overflow-x:auto; }
+  .amt-cell{ text-align:right; white-space:nowrap; font-weight:700; }
+
+  /* checklist */
+  .check-progress{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .check-progress .meter{ flex:1; margin-top:0; }
+  .check-group + .check-group{ margin-top:20px; }
+  .check-item{ display:flex; align-items:flex-start; gap:10px; padding:8px 0; }
+  .check-item input[type=checkbox]{ width:18px; height:18px; margin-top:1px; accent-color:var(--accent); flex:none; }
+  .check-item label{ font-size:.88rem; flex:1; font-weight:500; }
+  .check-item.done label{ color:var(--muted); text-decoration:line-through; }
+
+  /* bookings */
+  .booking-list{ display:flex; flex-direction:column; gap:12px; }
+  .booking{ border:1px solid var(--border); border-radius:var(--r-lg); padding:15px 17px; display:flex; gap:14px; align-items:flex-start; background:var(--surface); box-shadow:var(--shadow); }
+  .booking-type{ flex:none; font-size:.64rem; font-weight:800; letter-spacing:.06em; padding:5px 9px; border-radius:99px; background:var(--accent-soft); color:var(--accent-ink); }
+  .booking-body{ flex:1; min-width:0; }
+  .booking-title{ font-weight:700; font-size:.92rem; }
+  .booking-sub{ font-size:.78rem; color:var(--muted); margin-top:2px; font-weight:500; }
+  .booking-ref{ font-size:.76rem; margin-top:6px; color:var(--ink-2); font-weight:600; }
+  .booking-note{ font-size:.78rem; color:var(--muted); margin-top:4px; }
+  .booking-note a{ color:var(--accent-ink); font-weight:700; text-decoration:none; }
+  .booking-note a:hover{ text-decoration:underline; }
+
+  .empty-row{ color:var(--muted); font-size:.84rem; padding:10px 2px; }
+
+  /* participants / balances */
+  .participant-list{ display:flex; flex-direction:column; }
+  .participant-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; font-size:.88rem; font-weight:600; border-bottom:1px solid var(--border); }
+  .participant-row:last-child{ border-bottom:none; }
+  .inline-add-form{ display:flex; gap:8px; margin-top:12px; }
+  .inline-add-form input{
+    flex:1; appearance:none; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink);
+    padding:8px 12px; border-radius:var(--r-md); font-size:.86rem; font-family:inherit;
+  }
+  .balance-list{ display:flex; flex-direction:column; }
+  .balance-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 0; font-size:.86rem; font-weight:600; border-bottom:1px solid var(--border); }
+  .balance-row:last-child{ border-bottom:none; }
+  .settle-list{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-strong); display:flex; flex-direction:column; gap:6px; }
+  .settle-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.82rem; color:var(--ink-2); font-weight:600; }
+  .split-checks{ display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:6px; }
+  .split-check{ display:flex; align-items:center; gap:6px; font-size:.84rem; font-weight:600; color:var(--ink-2); cursor:pointer; }
+  .split-check input{ accent-color:var(--accent); }
+
+  .confirm-row{ display:flex; gap:8px; align-items:center; }
+
+  @media (max-width:480px){
+    .form-grid{ grid-template-columns:1fr; }
+    .cat-row{ grid-template-columns:84px 1fr auto; }
+    .trip-header{ padding:18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark-tile">
+        <svg class="brand-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="20" cy="20" r="17.5" stroke="currentColor" stroke-width="2.5"/>
+          <path d="M27 13L17 17L13 27L23 23L27 13Z" fill="currentColor"/>
+          <circle cx="20" cy="20" r="2" fill="var(--accent)" stroke="currentColor" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Bussola</h1>
+        <p>Itinerari, budget e prenotazioni per ogni viaggio</p>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="topbar-new-trip" data-action="open-new-trip" style="display:none;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Nuovo viaggio
+    </button>
+  </div>
+</div>
+
+<div id="notice-host"></div>
+
+<div class="shell">
+  <div class="layout">
+    <aside>
+      <div class="rail-head">
+        <h2>I tuoi viaggi</h2>
+        <span class="rail-count" id="rail-count"></span>
+      </div>
+      <div id="rail-tools"></div>
+      <div class="trip-list" id="trip-list"></div>
+    </aside>
+    <main class="dossier" id="dossier"></main>
+  </div>
+</div>
+
+<nav class="view-bar" id="view-bar" style="display:none;"></nav>
+
+<div id="print-view" class="print-only"></div>
+
+<input type="file" id="backup-file-input" accept="application/json" style="display:none;">
+
+<div id="modal-host"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- helpers ---------------- */
+  function uid(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,9);
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function fmtDateShort(dstr){
+    if(!dstr) return '';
+    var d = new Date(dstr + 'T00:00:00');
+    if (isNaN(d)) return dstr;
+    return new Intl.DateTimeFormat('it-IT', {day:'numeric', month:'short'}).format(d);
+  }
+  function fmtDateLong(dstr){
+    if(!dstr) return '';
+    var d = new Date(dstr + 'T00:00:00');
+    if (isNaN(d)) return dstr;
+    return new Intl.DateTimeFormat('it-IT', {weekday:'short', day:'numeric', month:'short', year:'numeric'}).format(d);
+  }
+  function fmtMoney(n, currency){
+    n = Number(n) || 0;
+    currency = currency || 'EUR';
+    try {
+      return new Intl.NumberFormat('it-IT', {style:'currency', currency:currency, maximumFractionDigits:2}).format(n);
+    } catch(e){
+      return n.toLocaleString('it-IT', {maximumFractionDigits:2}) + ' ' + currency;
+    }
+  }
+  function dayDiff(a,b){
+    var da = new Date(a+'T00:00:00'), db2 = new Date(b+'T00:00:00');
+    return Math.round((db2-da)/86400000);
+  }
+  function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+
+  var CAT_LABEL = { svago:'Svago', lavoro:'Lavoro', altro:'Altro' };
+  var EXP_CAT = [
+    {v:'trasporti', l:'Trasporti'}, {v:'alloggio', l:'Alloggio'}, {v:'cibo', l:'Cibo'},
+    {v:'attivita', l:'Attività'}, {v:'altro', l:'Altro'}
+  ];
+  var CHK_CAT = [
+    {v:'documento', l:'Documenti'}, {v:'da_fare', l:'Da fare'}, {v:'da_portare', l:'Da portare'}
+  ];
+  var BOOK_TYPE = [
+    {v:'volo', l:'Volo'}, {v:'hotel', l:'Hotel'}, {v:'trasporto', l:'Trasporto'}, {v:'altro', l:'Altro'}
+  ];
+  var CURRENCIES = [
+    {v:'AED', l:'AED — Dirham degli Emirati Arabi Uniti'}, {v:'AFN', l:'AFN — Afghani afgano'},
+    {v:'ALL', l:'ALL — Lek albanese'}, {v:'AMD', l:'AMD — Dram armeno'},
+    {v:'ANG', l:'ANG — Fiorino delle Antille Olandesi'}, {v:'AOA', l:'AOA — Kwanza angolano'},
+    {v:'ARS', l:'ARS — Peso argentino'}, {v:'AUD', l:'AUD — Dollaro australiano'},
+    {v:'AWG', l:'AWG — Fiorino arubano'}, {v:'AZN', l:'AZN — Manat azero'},
+    {v:'BAM', l:'BAM — Marco convertibile bosniaco'}, {v:'BBD', l:'BBD — Dollaro delle Barbados'},
+    {v:'BDT', l:'BDT — Taka del Bangladesh'}, {v:'BGN', l:'BGN — Lev bulgaro'},
+    {v:'BHD', l:'BHD — Dinaro del Bahrein'}, {v:'BIF', l:'BIF — Franco del Burundi'},
+    {v:'BMD', l:'BMD — Dollaro delle Bermuda'}, {v:'BND', l:'BND — Dollaro del Brunei'},
+    {v:'BOB', l:'BOB — Boliviano'}, {v:'BRL', l:'BRL — Real brasiliano'},
+    {v:'BSD', l:'BSD — Dollaro delle Bahamas'}, {v:'BTN', l:'BTN — Ngultrum bhutanese'},
+    {v:'BWP', l:'BWP — Pula del Botswana'}, {v:'BYN', l:'BYN — Rublo bielorusso'},
+    {v:'BZD', l:'BZD — Dollaro del Belize'}, {v:'CAD', l:'CAD — Dollaro canadese'},
+    {v:'CDF', l:'CDF — Franco congolese'}, {v:'CHF', l:'CHF — Franco svizzero'},
+    {v:'CLP', l:'CLP — Peso cileno'}, {v:'CNY', l:'CNY — Yuan cinese'},
+    {v:'COP', l:'COP — Peso colombiano'}, {v:'CRC', l:'CRC — Colón costaricano'},
+    {v:'CUP', l:'CUP — Peso cubano'}, {v:'CVE', l:'CVE — Escudo capoverdiano'},
+    {v:'CZK', l:'CZK — Corona ceca'}, {v:'DJF', l:'DJF — Franco di Gibuti'},
+    {v:'DKK', l:'DKK — Corona danese'}, {v:'DOP', l:'DOP — Peso dominicano'},
+    {v:'DZD', l:'DZD — Dinaro algerino'}, {v:'EGP', l:'EGP — Sterlina egiziana'},
+    {v:'ERN', l:'ERN — Nakfa eritreo'}, {v:'ETB', l:'ETB — Birr etiope'},
+    {v:'EUR', l:'EUR — Euro'}, {v:'FJD', l:'FJD — Dollaro delle Fiji'},
+    {v:'FKP', l:'FKP — Sterlina delle Falkland'}, {v:'GBP', l:'GBP — Sterlina britannica'},
+    {v:'GEL', l:'GEL — Lari georgiano'}, {v:'GHS', l:'GHS — Cedi ghanese'},
+    {v:'GIP', l:'GIP — Sterlina di Gibilterra'}, {v:'GMD', l:'GMD — Dalasi gambiano'},
+    {v:'GNF', l:'GNF — Franco guineano'}, {v:'GTQ', l:'GTQ — Quetzal guatemalteco'},
+    {v:'GYD', l:'GYD — Dollaro della Guyana'}, {v:'HKD', l:'HKD — Dollaro di Hong Kong'},
+    {v:'HNL', l:'HNL — Lempira honduregno'}, {v:'HTG', l:'HTG — Gourde haitiano'},
+    {v:'HUF', l:'HUF — Fiorino ungherese'}, {v:'IDR', l:'IDR — Rupia indonesiana'},
+    {v:'ILS', l:'ILS — Nuovo shekel israeliano'}, {v:'INR', l:'INR — Rupia indiana'},
+    {v:'IQD', l:'IQD — Dinaro iracheno'}, {v:'IRR', l:'IRR — Rial iraniano'},
+    {v:'ISK', l:'ISK — Corona islandese'}, {v:'JMD', l:'JMD — Dollaro giamaicano'},
+    {v:'JOD', l:'JOD — Dinaro giordano'}, {v:'JPY', l:'JPY — Yen giapponese'},
+    {v:'KES', l:'KES — Scellino keniota'}, {v:'KGS', l:'KGS — Som kirghiso'},
+    {v:'KHR', l:'KHR — Riel cambogiano'}, {v:'KMF', l:'KMF — Franco comoriano'},
+    {v:'KPW', l:'KPW — Won nordcoreano'}, {v:'KRW', l:'KRW — Won sudcoreano'},
+    {v:'KWD', l:'KWD — Dinaro kuwaitiano'}, {v:'KYD', l:'KYD — Dollaro delle Cayman'},
+    {v:'KZT', l:'KZT — Tenge kazako'}, {v:'LAK', l:'LAK — Kip laotiano'},
+    {v:'LBP', l:'LBP — Lira libanese'}, {v:'LKR', l:'LKR — Rupia dello Sri Lanka'},
+    {v:'LRD', l:'LRD — Dollaro liberiano'}, {v:'LSL', l:'LSL — Loti lesothano'},
+    {v:'LYD', l:'LYD — Dinaro libico'}, {v:'MAD', l:'MAD — Dirham marocchino'},
+    {v:'MDL', l:'MDL — Leu moldavo'}, {v:'MGA', l:'MGA — Ariary malgascio'},
+    {v:'MKD', l:'MKD — Denar macedone'}, {v:'MMK', l:'MMK — Kyat birmano'},
+    {v:'MNT', l:'MNT — Tugrik mongolo'}, {v:'MOP', l:'MOP — Pataca di Macao'},
+    {v:'MRU', l:'MRU — Ouguiya mauritana'}, {v:'MUR', l:'MUR — Rupia mauriziana'},
+    {v:'MVR', l:'MVR — Rufiyaa maldiviana'}, {v:'MWK', l:'MWK — Kwacha malawiano'},
+    {v:'MXN', l:'MXN — Peso messicano'}, {v:'MYR', l:'MYR — Ringgit malese'},
+    {v:'MZN', l:'MZN — Metical mozambicano'}, {v:'NAD', l:'NAD — Dollaro namibiano'},
+    {v:'NGN', l:'NGN — Naira nigeriana'}, {v:'NIO', l:'NIO — Córdoba nicaraguense'},
+    {v:'NOK', l:'NOK — Corona norvegese'}, {v:'NPR', l:'NPR — Rupia nepalese'},
+    {v:'NZD', l:'NZD — Dollaro neozelandese'}, {v:'OMR', l:'OMR — Rial omanita'},
+    {v:'PAB', l:'PAB — Balboa panamense'}, {v:'PEN', l:'PEN — Sol peruviano'},
+    {v:'PGK', l:'PGK — Kina papuana'}, {v:'PHP', l:'PHP — Peso filippino'},
+    {v:'PKR', l:'PKR — Rupia pakistana'}, {v:'PLN', l:'PLN — Złoty polacco'},
+    {v:'PYG', l:'PYG — Guaraní paraguaiano'}, {v:'QAR', l:'QAR — Riyal del Qatar'},
+    {v:'RON', l:'RON — Leu rumeno'}, {v:'RSD', l:'RSD — Dinaro serbo'},
+    {v:'RUB', l:'RUB — Rublo russo'}, {v:'RWF', l:'RWF — Franco ruandese'},
+    {v:'SAR', l:'SAR — Riyal saudita'}, {v:'SBD', l:'SBD — Dollaro delle Salomone'},
+    {v:'SCR', l:'SCR — Rupia delle Seychelles'}, {v:'SDG', l:'SDG — Sterlina sudanese'},
+    {v:'SEK', l:'SEK — Corona svedese'}, {v:'SGD', l:'SGD — Dollaro di Singapore'},
+    {v:'SHP', l:'SHP — Sterlina di Sant’Elena'}, {v:'SLE', l:'SLE — Leone sierraleonese'},
+    {v:'SOS', l:'SOS — Scellino somalo'}, {v:'SRD', l:'SRD — Dollaro surinamese'},
+    {v:'SSP', l:'SSP — Sterlina sudsudanese'}, {v:'STN', l:'STN — Dobra di São Tomé e Príncipe'},
+    {v:'SYP', l:'SYP — Lira siriana'}, {v:'SZL', l:'SZL — Lilangeni swazi'},
+    {v:'THB', l:'THB — Baht thailandese'}, {v:'TJS', l:'TJS — Somoni tagiko'},
+    {v:'TMT', l:'TMT — Manat turkmeno'}, {v:'TND', l:'TND — Dinaro tunisino'},
+    {v:'TOP', l:'TOP — Pa’anga tongano'}, {v:'TRY', l:'TRY — Lira turca'},
+    {v:'TTD', l:'TTD — Dollaro di Trinidad e Tobago'}, {v:'TWD', l:'TWD — Nuovo dollaro taiwanese'},
+    {v:'TZS', l:'TZS — Scellino tanzaniano'}, {v:'UAH', l:'UAH — Hryvnia ucraina'},
+    {v:'UGX', l:'UGX — Scellino ugandese'}, {v:'USD', l:'USD — Dollaro statunitense'},
+    {v:'UYU', l:'UYU — Peso uruguaiano'}, {v:'UZS', l:'UZS — Som uzbeko'},
+    {v:'VES', l:'VES — Bolívar venezuelano'}, {v:'VND', l:'VND — Dong vietnamita'},
+    {v:'VUV', l:'VUV — Vatu di Vanuatu'}, {v:'WST', l:'WST — Tala samoano'},
+    {v:'XAF', l:'XAF — Franco CFA (Africa centrale)'}, {v:'XCD', l:'XCD — Dollaro dei Caraibi orientali'},
+    {v:'XOF', l:'XOF — Franco CFA (Africa occidentale)'}, {v:'XPF', l:'XPF — Franco CFP'},
+    {v:'YER', l:'YER — Rial yemenita'}, {v:'ZAR', l:'ZAR — Rand sudafricano'},
+    {v:'ZMW', l:'ZMW — Kwacha zambiano'}, {v:'ZWL', l:'ZWL — Dollaro dello Zimbabwe'}
+  ];
+  var FILTER_STATUS = [
+    {v:'tutti', l:'Tutti'}, {v:'futuro', l:'In arrivo'}, {v:'corso', l:'In corso'}, {v:'concluso', l:'Conclusi'}
+  ];
+  var CONTRACT_TYPES = [
+    {v:'', l:'Non specificato'},
+    {v:'indeterminato', l:'Tempo indeterminato'},
+    {v:'determinato', l:'Tempo determinato'},
+    {v:'freelance', l:'Freelance / Partita IVA'},
+    {v:'ricerca', l:'Ancora in cerca'},
+    {v:'altro', l:'Altro'}
+  ];
+
+  function defaultRelocation(){
+    return { salary:0, startingBudget:0, costOfLiving:0, contractType:'', notes:'' };
+  }
+
+  function tripStatus(t){
+    if (t.completed) return 'concluso';
+    if (t.forcedOngoing) return 'corso';
+    var today = todayStr();
+    if (t.endDate && today > t.endDate) return 'concluso';
+    if (t.startDate && today < t.startDate) return 'futuro';
+    return 'corso';
+  }
+
+  /* ---------------- state ---------------- */
+  var state = {
+    trips: [],
+    ready: false,
+    dbAvailable: null, // null=unknown, true/false once resolved
+    storageMode: null, // 'cloud' (Claude db), 'local' (localStorage), 'none' (no persistence)
+    activeTripId: null,
+    activeTab: 'itinerario',
+    modal: null, // {mode:'new'|'edit', trip?}
+    confirmDeleteTrip: null,
+    confirmDeleteItem: null, // {kind, id}
+    noticeDismissed: false,
+    search: '',
+    filterStatus: 'tutti'
+  };
+
+  var db = null;
+  var tripsCol = null;
+  var saveChains = {}; // per-trip promise chain to serialize writes
+  var downloadsCap = null; // resolved lazily; null until the downloads capability answers
+
+  function exampleTrips(){
+    var t1 = {
+      id: uid(), isExample:true, name:'Fiera di settore — Monaco di Baviera', category:'lavoro',
+      destination:'Monaco di Baviera, Germania', startDate:'2026-10-12', endDate:'2026-10-15', currency:'EUR',
+      budgetPlanned: 900, notes:'Trasferta per la fiera B2B annuale. Rimborso spese entro due settimane dal rientro.',
+      itinerary:[
+        {id:uid(), date:'2026-10-12', time:'14:30', title:'Volo di andata', note:'Aeroporto di Monaco, terminal 2'},
+        {id:uid(), date:'2026-10-12', time:'17:00', title:'Check-in hotel', note:''},
+        {id:uid(), date:'2026-10-13', time:'09:00', title:'Apertura fiera — stand espositivo', note:''},
+        {id:uid(), date:'2026-10-13', time:'20:00', title:'Cena con i clienti', note:'Ristorante Augustiner'},
+        {id:uid(), date:'2026-10-14', time:'10:00', title:'Incontri B2B programmati', note:'Sala meeting 3'},
+        {id:uid(), date:'2026-10-15', time:'11:00', title:'Volo di ritorno', note:''}
+      ],
+      expenses:[
+        {id:uid(), date:'2026-10-12', category:'trasporti', description:'Volo andata/ritorno', amount:210},
+        {id:uid(), date:'2026-10-12', category:'alloggio', description:'Hotel, 3 notti', amount:480},
+        {id:uid(), date:'2026-10-13', category:'cibo', description:'Cena clienti', amount:95}
+      ],
+      checklist:[
+        {id:uid(), category:'documento', text:'Carta d’identità', done:true},
+        {id:uid(), category:'documento', text:'Assicurazione di viaggio', done:false},
+        {id:uid(), category:'da_fare', text:'Confermare agenda incontri', done:false},
+        {id:uid(), category:'da_fare', text:'Stampare badge fiera', done:false},
+        {id:uid(), category:'da_portare', text:'Biglietti da visita', done:false},
+        {id:uid(), category:'da_portare', text:'Laptop e caricabatterie', done:true}
+      ],
+      bookings:[
+        {id:uid(), type:'volo', title:'Milano MXP → Monaco MUC', provider:'Lufthansa', date:'2026-10-12', reference:'LH4F9K2', link:'https://www.lufthansa.com/booking', note:'Bagaglio a mano incluso'},
+        {id:uid(), type:'hotel', title:'NH München City', provider:'NH Hotels', date:'2026-10-12', reference:'NH-88213', link:'', note:'3 notti, colazione inclusa'}
+      ],
+      relocation: defaultRelocation(),
+      createdAt: new Date().toISOString()
+    };
+    var t2 = {
+      id: uid(), isExample:true, name:'Weekend alle Cinque Terre', category:'svago',
+      destination:'Cinque Terre, Liguria', startDate:'2026-06-05', endDate:'2026-06-07', currency:'EUR',
+      budgetPlanned: 400, notes:'Weekend lungo, niente auto: solo treno regionale e sentieri costieri.',
+      itinerary:[
+        {id:uid(), date:'2026-06-05', time:'09:10', title:'Treno da Milano a La Spezia', note:''},
+        {id:uid(), date:'2026-06-05', time:'13:00', title:'Check-in a Riomaggiore', note:''},
+        {id:uid(), date:'2026-06-06', time:'09:00', title:'Trekking Riomaggiore → Vernazza', note:'Sentiero Azzurro'},
+        {id:uid(), date:'2026-06-06', time:'19:30', title:'Cena vista mare a Vernazza', note:''},
+        {id:uid(), date:'2026-06-07', time:'16:00', title:'Treno di rientro', note:''}
+      ],
+      expenses:[
+        {id:uid(), date:'2026-06-05', category:'trasporti', description:'Biglietti treno A/R', amount:64},
+        {id:uid(), date:'2026-06-05', category:'alloggio', description:'B&B, 2 notti', amount:180},
+        {id:uid(), date:'2026-06-06', category:'attivita', description:'Cinque Terre Card trekking', amount:32},
+        {id:uid(), date:'2026-06-06', category:'cibo', description:'Pasti del weekend', amount:75}
+      ],
+      checklist:[
+        {id:uid(), category:'da_portare', text:'Scarpe da trekking', done:true},
+        {id:uid(), category:'da_portare', text:'Costume da bagno', done:true},
+        {id:uid(), category:'da_fare', text:'Scaricare mappa sentieri offline', done:true},
+        {id:uid(), category:'documento', text:'Cinque Terre Card', done:true}
+      ],
+      bookings:[
+        {id:uid(), type:'trasporto', title:'Milano C.le → La Spezia', provider:'Trenitalia', date:'2026-06-05', reference:'TR-556021', link:'', note:''},
+        {id:uid(), type:'hotel', title:'B&B Scogliera', provider:'Booking.com', date:'2026-06-05', reference:'BK-77410', link:'https://www.booking.com', note:'2 notti'}
+      ],
+      relocation: defaultRelocation(),
+      createdAt: new Date().toISOString()
+    };
+    var t3 = {
+      id: uid(), isExample:true, name:'Nuova vita a Lisbona', category:'altro',
+      destination:'Lisbona, Portogallo', startDate:'2026-12-01', endDate:'2026-12-01', currency:'EUR',
+      budgetPlanned: 1200, notes:'Trasferimento definitivo: contratto già firmato, inizio in ufficio il 8 dicembre. Zona cercata: Alcântara o Arroios.',
+      itinerary:[
+        {id:uid(), date:'2026-12-01', time:'08:15', title:'Volo di sola andata Milano → Lisbona', note:'Solo bagaglio in stiva, 2 valigie'},
+        {id:uid(), date:'2026-12-01', time:'12:00', title:'Ritiro chiavi appartamento temporaneo', note:'Airbnb per il primo mese'},
+        {id:uid(), date:'2026-12-02', time:'09:30', title:'Appuntamento SEF per permesso di soggiorno', note:'Portare passaporto e contratto di lavoro'},
+        {id:uid(), date:'2026-12-03', time:'10:00', title:'Apertura conto corrente', note:'Millennium BCP, filiale di Baixa'},
+        {id:uid(), date:'2026-12-08', time:'09:00', title:'Primo giorno in ufficio', note:''}
+      ],
+      expenses:[
+        {id:uid(), date:'2026-11-20', category:'altro', description:'Agenzia trasporto trasloco', amount:650},
+        {id:uid(), date:'2026-12-01', category:'trasporti', description:'Volo sola andata', amount:180},
+        {id:uid(), date:'2026-12-01', category:'alloggio', description:'Deposito + primo mese Airbnb', amount:1450}
+      ],
+      checklist:[
+        {id:uid(), category:'documento', text:'Passaporto e visto (se richiesto)', done:true},
+        {id:uid(), category:'documento', text:'Contratto di lavoro firmato', done:true},
+        {id:uid(), category:'documento', text:'Certificato di residenza / codice fiscale portoghese (NIF)', done:false},
+        {id:uid(), category:'da_fare', text:'Disdire utenze e contratto d’affitto in Italia', done:false},
+        {id:uid(), category:'da_fare', text:'Aprire conto corrente locale', done:false},
+        {id:uid(), category:'da_fare', text:'Attivare assicurazione sanitaria privata', done:false},
+        {id:uid(), category:'da_portare', text:'Documenti sanitari e vaccinazioni', done:false},
+        {id:uid(), category:'da_portare', text:'Estratti conto e buste paga per il mutuo/affitto', done:false}
+      ],
+      bookings:[
+        {id:uid(), type:'volo', title:'Milano MXP → Lisbona LIS (sola andata)', provider:'TAP Air Portugal', date:'2026-12-01', reference:'TP8823X', link:'', note:'2 bagagli in stiva'},
+        {id:uid(), type:'altro', title:'Appartamento temporaneo, 1 mese', provider:'Airbnb', date:'2026-12-01', reference:'AIRBNB-40217', link:'', note:'In attesa di trovare casa definitiva'}
+      ],
+      relocation: {
+        salary: 2400, startingBudget: 9000, costOfLiving: 1550,
+        contractType: 'indeterminato',
+        notes: 'Stipendio netto da contratto già firmato. Il budget di partenza copre circa 6 mesi di margine prima di dipendere solo dallo stipendio.'
+      },
+      createdAt: new Date().toISOString()
+    };
+    return [t1,t2,t3];
+  }
+
+  /* ---------------- persistence ---------------- */
+  var LOCAL_KEY = 'bussola-trips-v1';
+  function persistLocal(){
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ trips: state.trips })); }
+    catch(e){ console.warn('Salvataggio locale non riuscito', e); }
+  }
+  function loadLocal(){
+    try {
+      var raw = localStorage.getItem(LOCAL_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed.trips) ? parsed.trips : [];
+    } catch(e){ return []; }
+  }
+
+  function queueSave(trip){
+    if (state.storageMode==='local'){ persistLocal(); return Promise.resolve(); }
+    var chain = saveChains[trip.id] || Promise.resolve();
+    saveChains[trip.id] = chain.then(function(){
+      if (!db) return Promise.resolve();
+      return tripsCol.doc(trip.id).set(trip).catch(function(err){
+        console.warn('Salvataggio non riuscito', err);
+      });
+    });
+    return saveChains[trip.id];
+  }
+
+  function findTrip(id){
+    for (var i=0;i<state.trips.length;i++) if (state.trips[i].id===id) return state.trips[i];
+    return null;
+  }
+
+  function mutateTrip(id, fn){
+    var trip = findTrip(id);
+    if (!trip) return;
+    fn(trip);
+    if (!db){ render(); }
+    queueSave(trip);
+    if (!db) return;
+    render();
+  }
+
+  function addTrip(trip){
+    state.trips.push(trip);
+    state.activeTripId = trip.id;
+    state.activeTab = 'itinerario';
+    // A leftover search/filter could hide the trip we just created from the
+    // list, even though it's now open on the right — always show it.
+    state.search = '';
+    state.filterStatus = 'tutti';
+    render();
+    queueSave(trip);
+  }
+
+  function deleteTrip(id){
+    state.trips = state.trips.filter(function(t){ return t.id!==id; });
+    if (state.activeTripId===id) state.activeTripId = null;
+    state.confirmDeleteTrip = null;
+    render();
+    if (state.storageMode==='local'){ persistLocal(); return; }
+    if (db){
+      tripsCol.doc(id).delete().catch(function(err){ console.warn('Eliminazione non riuscita', err); });
+    }
+  }
+
+  function cloneTrip(t){
+    function cloneList(list){
+      return (list||[]).map(function(it){ var c = Object.assign({}, it); c.id = uid(); return c; });
+    }
+    var participantMap = {};
+    var newParticipants = (t.participants||[]).map(function(p){
+      var np = Object.assign({}, p); np.id = uid(); participantMap[p.id] = np.id; return np;
+    });
+    var newExpenses = (t.expenses||[]).map(function(e){
+      var c = Object.assign({}, e); c.id = uid();
+      c.paidBy = (e.paidBy && participantMap[e.paidBy]) ? participantMap[e.paidBy] : '';
+      c.splitWith = (Array.isArray(e.splitWith) ? e.splitWith : []).map(function(id){ return participantMap[id]; }).filter(Boolean);
+      return c;
+    });
+    return {
+      id: uid(), isExample:false, name: t.name + ' (copia)', category:t.category, destination:t.destination,
+      startDate:t.startDate, endDate:t.endDate, currency:t.currency||'EUR',
+      budgetPlanned:t.budgetPlanned||0, notes:t.notes||'',
+      itinerary: cloneList(t.itinerary), expenses: newExpenses,
+      checklist: cloneList(t.checklist), bookings: cloneList(t.bookings),
+      relocation: Object.assign(defaultRelocation(), t.relocation||{}),
+      participants: newParticipants,
+      completed:false, forcedOngoing:false, createdAt: new Date().toISOString()
+    };
+  }
+
+  /* ---------------- render: notice ---------------- */
+  function renderNotice(){
+    var host = document.getElementById('notice-host');
+    if (state.storageMode !== 'none' || state.noticeDismissed){ host.innerHTML=''; return; }
+    host.innerHTML =
+      '<div class="notice"><span>Anteprima senza salvataggio: in questa visualizzazione le modifiche non vengono conservate tra una sessione e l’altra.</span>' +
+      '<button data-action="dismiss-notice" aria-label="Chiudi avviso">×</button></div>';
+  }
+
+  /* ---------------- render: rail ---------------- */
+  function railEmptySvg(){
+    return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2.4" stroke="currentColor" stroke-width="1.6"/></svg>';
+  }
+
+  function renderRailTools(){
+    var host = document.getElementById('rail-tools');
+    if (!state.trips.length){ host.innerHTML = ''; return; }
+    host.innerHTML =
+      '<div class="rail-tools">' +
+        '<div class="search-field">' +
+          '<svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+          '<input type="search" id="trip-search" placeholder="Cerca nome, note, checklist, prenotazioni..." value="' + esc(state.search) + '">' +
+        '</div>' +
+        '<div class="filter-pills">' +
+          FILTER_STATUS.map(function(f){
+            return '<button class="filter-pill' + (state.filterStatus===f.v?' active':'') + '" data-action="set-filter" data-filter="' + f.v + '">' + f.l + '</button>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  function tripMatchesSearch(t, q){
+    if (t.name.toLowerCase().indexOf(q)!==-1) return true;
+    if (t.destination.toLowerCase().indexOf(q)!==-1) return true;
+    if ((t.notes||'').toLowerCase().indexOf(q)!==-1) return true;
+    if ((t.checklist||[]).some(function(c){ return (c.text||'').toLowerCase().indexOf(q)!==-1; })) return true;
+    if ((t.bookings||[]).some(function(b){
+      return (b.title||'').toLowerCase().indexOf(q)!==-1 ||
+        (b.provider||'').toLowerCase().indexOf(q)!==-1 ||
+        (b.reference||'').toLowerCase().indexOf(q)!==-1;
+    })) return true;
+    if ((t.itinerary||[]).some(function(s){ return (s.title||'').toLowerCase().indexOf(q)!==-1 || (s.note||'').toLowerCase().indexOf(q)!==-1; })) return true;
+    return false;
+  }
+
+  function filteredTrips(){
+    var q = state.search.trim().toLowerCase();
+    return state.trips.filter(function(t){
+      if (state.filterStatus!=='tutti' && tripStatus(t)!==state.filterStatus) return false;
+      if (q && !tripMatchesSearch(t, q)) return false;
+      return true;
+    }).sort(function(a,b){ return (a.startDate||'').localeCompare(b.startDate||''); });
+  }
+
+  function renderTripList(){
+    var list = document.getElementById('trip-list');
+    var count = document.getElementById('rail-count');
+    var total = state.trips.length;
+    var sorted = filteredTrips();
+    var filtering = state.filterStatus!=='tutti' || state.search.trim();
+
+    if (!total){
+      count.textContent = '';
+      list.innerHTML = '<div class="rail-empty">' + railEmptySvg() +
+        '<p>Nessun viaggio ancora.</p></div>';
+      return;
+    }
+
+    count.textContent = filtering ? (sorted.length + ' di ' + total) : (total + (total===1?' viaggio':' viaggi'));
+
+    if (!sorted.length){
+      list.innerHTML = '<div class="list-empty-filtered">Nessun viaggio corrisponde alla ricerca.</div>';
+      return;
+    }
+
+    list.innerHTML = sorted.map(function(t){
+      var status = tripStatus(t);
+      var chipClass = status==='futuro' ? 'chip-futuro' : (status==='corso' ? 'chip-corso' : 'chip-concluso');
+      var chipText = status==='futuro' ? 'In arrivo' : (status==='corso' ? 'In corso' : 'Concluso');
+      var active = t.id===state.activeTripId ? ' active' : '';
+      return (
+        '<button class="ticket' + active + '" data-action="select-trip" data-id="' + t.id + '">' +
+          (t.isExample ? '<span class="example-badge mono">ESEMPIO</span>' : '') +
+          '<div class="ticket-row1">' +
+            '<span class="ticket-name display">' + esc(t.name) + '</span>' +
+          '</div>' +
+          '<div class="ticket-dest"><span class="dot cat-' + t.category + '"></span> &nbsp;' + esc(t.destination) + '</div>' +
+          '<div class="ticket-row2">' +
+            '<span class="ticket-dates mono">' + fmtDateShort(t.startDate) + ' – ' + fmtDateShort(t.endDate) + '</span>' +
+            '<span class="chip ' + chipClass + '">' + chipText + '</span>' +
+          '</div>' +
+        '</button>'
+      );
+    }).join('');
+  }
+
+  /* ---------------- render: dossier ---------------- */
+  function dossierEmptySvg(){
+    return '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5 12 3l8 3.5v11L12 21l-8-3.5v-11Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4 6.5 12 10l8-3.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  }
+
+  function homeFeatures(){
+    return [
+      { color:'teal', title:'Itinerario', desc:'Organizza le tappe giorno per giorno, con orari e luoghi sempre a portata di mano.',
+        svg:'<path d="M4 19c4-1.2 4-5 8-5s4 3.8 8 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="4" cy="19" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="19" r="1.5" fill="currentColor"/>' },
+      { color:'good', title:'Budget e spese', desc:'Tieni traccia di quanto hai pianificato e di quanto hai speso, in qualsiasi valuta.',
+        svg:'<rect x="3" y="6.5" width="18" height="12.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3 10.2h18" stroke="currentColor" stroke-width="1.6"/><circle cx="16.5" cy="14.5" r="1.3" fill="currentColor"/>' },
+      { color:'accent', title:'Checklist e documenti', desc:'Non dimenticare nulla: documenti, bagagli e cose da fare prima di partire.',
+        svg:'<rect x="3.5" y="4" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M7 9.3 8.6 11l2.7-3M7 15.3l1.6 1.7 2.7-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14 8.6h4M14 16.6h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+      { color:'plum', title:'Prenotazioni', desc:'Voli, hotel e altre prenotazioni raccolte in un solo posto, con link diretti.',
+        svg:'<path d="M3 9.3a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a1.5 1.5 0 0 0 0 2.9v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a1.5 1.5 0 0 0 0-2.9v-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/><path d="M9 7.3v9.4" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.2"/>' },
+      { color:'warning', title:'Trasferimento', desc:'Per chi cambia vita all’estero: stipendio, budget di partenza e margine mensile.',
+        svg:'<circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M3.9 12h16.2M12 3.9c2.9 2.2 2.9 15.9 0 16.2M12 3.9c-2.9 2.2-2.9 15.9 0 16.2" stroke="currentColor" stroke-width="1.6" fill="none"/>' }
+    ];
+  }
+
+  function renderHomeDashboard(el){
+    var trips = state.trips;
+    var upcoming = trips.filter(function(t){ return tripStatus(t)==='futuro'; })
+      .sort(function(a,b){ return (a.startDate||'').localeCompare(b.startDate||''); });
+    var ongoing = trips.filter(function(t){ return tripStatus(t)==='corso'; });
+    var next = upcoming[0];
+
+    var html = '<div class="home-hero">' +
+        '<div class="home-hero-mark"><svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+          '<circle cx="20" cy="20" r="17.5" stroke="currentColor" stroke-width="2.5"/>' +
+          '<path d="M27 13L17 17L13 27L23 23L27 13Z" fill="currentColor"/>' +
+          '<circle cx="20" cy="20" r="2" fill="var(--accent)" stroke="currentColor" stroke-width="1"/>' +
+        '</svg></div>' +
+        '<div>' +
+          '<div class="home-greet display">Bussola</div>' +
+          '<p class="home-sub" style="margin-bottom:0;">' + trips.length + (trips.length===1?' viaggio organizzato':' viaggi organizzati') + ' finora — il punto di riferimento per pianificare ogni partenza, dallo svago al trasferimento.</p>' +
+        '</div>' +
+      '</div>';
+
+    if (next){
+      var daysTo = Math.max(0, dayDiff(todayStr(), next.startDate));
+      html += '<div class="spotlight">' +
+        '<div>' +
+          '<div class="spotlight-eyebrow">Prossimo viaggio</div>' +
+          '<div class="spotlight-name display">' + esc(next.name) + '</div>' +
+          '<div class="spotlight-meta">' + esc(next.destination) + ' · ' + fmtDateLong(next.startDate) + '</div>' +
+          '<button class="btn btn-primary btn-sm" style="margin-top:14px;" data-action="select-trip" data-id="' + next.id + '">Apri viaggio</button>' +
+        '</div>' +
+        '<div>' +
+          '<div class="spotlight-count mono">' + daysTo + '</div>' +
+          '<div class="spotlight-count-label">giorn' + (daysTo===1?'o':'i') + ' mancanti</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    html += '<div class="home-section-title" style="margin-top:' + (next?'26px':'22px') + ';">Cosa puoi fare con Bussola</div>' +
+      '<div class="feature-grid">' +
+        homeFeatures().map(function(f){
+          return '<div class="feature-card">' +
+            '<div class="feature-icon" style="background:color-mix(in srgb, var(--' + f.color + ') 16%, transparent); color:var(--' + f.color + ');">' +
+              '<svg viewBox="0 0 24 24" fill="none">' + f.svg + '</svg>' +
+            '</div>' +
+            '<h4>' + f.title + '</h4>' +
+            '<p>' + f.desc + '</p>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+
+    if (ongoing.length){
+      html += '<div class="home-section-title">In corso ora</div><div class="ongoing-list">' +
+        ongoing.map(function(t){
+          return '<div class="ongoing-card" data-action="select-trip" data-id="' + t.id + '">' +
+            '<div><span class="ticket-name display">' + esc(t.name) + '</span>' +
+            '<div class="ticket-dest" style="margin-top:4px;"><span class="dot cat-' + t.category + '"></span> &nbsp;' + esc(t.destination) + '</div></div>' +
+            '<span class="chip chip-corso">In corso</span>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }
+
+    html += '<div class="home-section-title">Dati e backup</div>' +
+      '<div class="backup-row">' +
+        '<div><p style="margin:0;font-size:.84rem;color:var(--ink-2);">Scarica una copia di tutti i tuoi viaggi, o ripristinane una da un file salvato in precedenza.</p>' +
+        '<p id="backup-status" style="margin:6px 0 0;font-size:.78rem;font-weight:700;color:var(--good);"></p></div>' +
+        '<div style="display:flex;gap:8px;flex:none;">' +
+          '<button class="btn btn-ghost btn-sm" data-action="export-backup">Esporta backup</button>' +
+          '<button class="btn btn-ghost btn-sm" data-action="import-backup">Importa backup</button>' +
+        '</div>' +
+      '</div>';
+
+    el.innerHTML = html;
+  }
+
+  function renderSectionView(el, status){
+    var trips = state.trips.filter(function(t){ return tripStatus(t)===status; });
+    var isCorso = status==='corso';
+    var title = isCorso ? 'Viaggi in corso' : 'Viaggi completati';
+    var emptyTitle = isCorso ? 'Nessun viaggio in corso' : 'Nessun viaggio completato';
+    var emptyMsg = isCorso ? 'Quando un viaggio sarà in corso lo troverai qui.' : 'I viaggi che segni come completati, o che sono già conclusi, compariranno qui.';
+    var emptySvg = isCorso
+      ? '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5V12l3.1 1.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.6"/><path d="M8.2 12.3l2.5 2.5 5-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+
+    var html = '<div class="home-section-title" style="margin-top:0;">' + title + '</div>';
+    if (!trips.length){
+      html += '<div class="dossier-empty" style="min-height:300px;"><div class="empty-state">' + emptySvg +
+        '<h3 class="display">' + emptyTitle + '</h3>' +
+        '<p>' + emptyMsg + '</p>' +
+        (state.trips.length ? '' : '<button class="btn btn-primary btn-sm" style="margin-top:6px;" data-action="open-new-trip">Crea il tuo primo viaggio</button>') +
+        '</div></div>';
+    } else {
+      html += '<div class="ongoing-list">' +
+        trips.map(function(t){
+          return '<div class="ongoing-card" data-action="select-trip" data-id="' + t.id + '">' +
+            '<div><span class="ticket-name display">' + esc(t.name) + '</span>' +
+            '<div class="ticket-dest" style="margin-top:4px;"><span class="dot cat-' + t.category + '"></span> &nbsp;' + esc(t.destination) + '</div></div>' +
+            '<span class="chip chip-' + status + '">' + (isCorso ? 'In corso' : 'Concluso') + '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function renderDossier(){
+    var el = document.getElementById('dossier');
+    var trip = findTrip(state.activeTripId);
+    var printHostEl = document.getElementById('print-view');
+    if (!trip){
+      if (printHostEl) printHostEl.innerHTML = '';
+      if (state.filterStatus==='corso' || state.filterStatus==='concluso'){
+        renderSectionView(el, state.filterStatus);
+        return;
+      }
+      if (!state.trips.length){
+        el.innerHTML = '<div class="dossier-empty"><div class="empty-state">' + dossierEmptySvg() +
+          '<h3 class="display">Il tuo prossimo viaggio inizia qui</h3>' +
+          '<p>Raccogli in un unico posto itinerario, budget, checklist e prenotazioni — per lo svago, per il lavoro o per qualsiasi altra trasferta.</p>' +
+          '<button class="btn btn-primary" data-action="open-new-trip">Crea il tuo primo viaggio</button>' +
+          '</div></div>';
+        return;
+      }
+      renderHomeDashboard(el);
+      return;
+    }
+    if (state.activeTab==='trasferimento' && trip.category!=='altro'){ state.activeTab = 'itinerario'; }
+
+    var status = tripStatus(trip);
+    var statusText = status==='futuro' ? ('tra ' + Math.max(0,dayDiff(todayStr(), trip.startDate)) + ' giorni')
+      : status==='corso' ? ('giorno ' + clamp(dayDiff(trip.startDate, todayStr())+1,1,999) + ' di ' + (dayDiff(trip.startDate,trip.endDate)+1))
+      : (trip.completed && todayStr() <= trip.endDate ? 'segnato come completato' : 'concluso il ' + fmtDateLong(trip.endDate));
+
+    var checkDone = trip.checklist.filter(function(c){return c.done;}).length;
+    var checkTotal = trip.checklist.length;
+
+    var tripDays = dayDiff(trip.startDate, trip.endDate) + 1;
+    var totalSpent = trip.expenses.reduce(function(s,e){ return s + (Number(e.amount)||0); },0);
+    var planned = Number(trip.budgetPlanned)||0;
+    var pct = planned>0 ? (totalSpent/planned*100) : 0;
+    var budgetColor = 'var(--good)';
+    if (planned>0 && pct>=100) budgetColor = 'var(--critical)';
+    else if (planned>0 && pct>=80) budgetColor = 'var(--warning)';
+
+    var statGrid =
+      '<div class="stat-grid">' +
+        '<div class="stat-tile"><div class="stat-label">Durata</div><div class="stat-value mono">' + tripDays + '</div><div class="stat-sub">giorn' + (tripDays===1?'o':'i') + ' di viaggio</div></div>' +
+        '<div class="stat-tile"><div class="stat-label">Budget</div><div class="stat-value mono" style="color:' + budgetColor + '">' + (planned>0 ? Math.round(pct)+'%' : '—') + '</div><div class="stat-sub">' + fmtMoney(totalSpent, trip.currency) + ' di ' + (planned>0?fmtMoney(planned, trip.currency):'n/d') + '</div></div>' +
+        '<div class="stat-tile"><div class="stat-label">Checklist</div><div class="stat-value mono">' + checkDone + '/' + checkTotal + '</div><div class="stat-sub">' + (checkTotal ? Math.round(checkDone/checkTotal*100)+'% completata' : 'nessuna voce') + '</div></div>' +
+        '<div class="stat-tile"><div class="stat-label">Prenotazioni</div><div class="stat-value mono">' + trip.bookings.length + '</div><div class="stat-sub">voci salvate</div></div>' +
+      '</div>';
+
+    el.innerHTML =
+      '<div class="trip-header">' +
+        '<div class="trip-header-top">' +
+          '<div>' +
+            (trip.isExample ? '<span class="example-badge mono" style="margin-bottom:8px;display:inline-block;">ESEMPIO</span>' : '') +
+            '<h2 class="trip-title">' + esc(trip.name) + '</h2>' +
+            '<div class="trip-meta">' +
+              '<span><span class="dot cat-' + trip.category + '"></span> &nbsp;' + CAT_LABEL[trip.category] + '</span>' +
+              '<span>' + esc(trip.destination) + '</span>' +
+              '<span class="mono">' + fmtDateLong(trip.startDate) + ' → ' + fmtDateLong(trip.endDate) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="trip-actions">' +
+            '<button class="btn btn-ghost btn-sm" data-action="export-trip" data-id="' + trip.id + '">Esporta PDF</button>' +
+            '<button class="btn btn-ghost btn-sm" data-action="edit-trip" data-id="' + trip.id + '">Modifica</button>' +
+            '<button class="btn btn-ghost btn-sm" data-action="duplicate-trip" data-id="' + trip.id + '">Duplica</button>' +
+            (!trip.completed ? '<button class="btn btn-ghost btn-sm" data-action="toggle-ongoing" data-id="' + trip.id + '">' + (trip.forcedOngoing ? 'Rimuovi stato "in corso"' : 'Segna come in corso') + '</button>' : '') +
+            '<button class="btn btn-ghost btn-sm" data-action="toggle-complete" data-id="' + trip.id + '">' + (trip.completed ? 'Riapri viaggio' : 'Segna come completato') + '</button>' +
+            (state.confirmDeleteTrip===trip.id ?
+              '<span class="confirm-row"><button class="btn btn-danger btn-sm" data-action="confirm-delete-trip" data-id="' + trip.id + '">Conferma</button>' +
+              '<button class="btn btn-ghost btn-sm" data-action="cancel-delete-trip">Annulla</button></span>' :
+              '<button class="btn btn-ghost btn-sm" data-action="ask-delete-trip" data-id="' + trip.id + '">Elimina</button>') +
+          '</div>' +
+        '</div>' +
+        '<div class="countdown">' + statusText + '</div>' +
+        (trip.notes ? '<div class="trip-notes">' + esc(trip.notes) + '</div>' : '') +
+      '</div>' +
+
+      statGrid +
+
+      '<div class="tabs">' +
+        tabBtn('itinerario','Itinerario', trip.itinerary.length) +
+        tabBtn('budget','Budget', null) +
+        tabBtn('checklist','Checklist', checkDone + '/' + trip.checklist.length, checklistNeedsAttention(trip)) +
+        tabBtn('prenotazioni','Prenotazioni', trip.bookings.length) +
+        (trip.category==='altro' ? tabBtn('trasferimento','Trasferimento', null) : '') +
+      '</div>' +
+      '<div class="panel" id="panel">' + renderPanel(trip) + '</div>';
+
+    var printHost = document.getElementById('print-view');
+    if (printHost) printHost.innerHTML = renderPrintView(trip);
+  }
+
+  function renderPrintView(trip){
+    var checkDone = trip.checklist.filter(function(c){return c.done;}).length;
+    var totalSpent = trip.expenses.reduce(function(s,e){ return s + (Number(e.amount)||0); },0);
+    var planned = Number(trip.budgetPlanned)||0;
+
+    var stops = trip.itinerary.slice().sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+    var groups = {}, order = [];
+    stops.forEach(function(s){ if (!groups[s.date]){ groups[s.date]=[]; order.push(s.date); } groups[s.date].push(s); });
+
+    var html = '<h1 class="print-title">' + esc(trip.name) + '</h1>' +
+      '<div class="print-meta">' + CAT_LABEL[trip.category] + ' · ' + esc(trip.destination) + ' · ' + fmtDateLong(trip.startDate) + ' → ' + fmtDateLong(trip.endDate) + '</div>' +
+      (trip.notes ? '<div class="print-meta">' + esc(trip.notes) + '</div>' : '');
+
+    html += '<div class="print-section"><h3>Itinerario</h3>';
+    if (!order.length){ html += '<p>Nessuna tappa in programma.</p>'; }
+    else {
+      html += order.map(function(date){
+        var dayNum = dayDiff(trip.startDate, date) + 1;
+        return '<div class="print-day"><div class="print-day-head">Giorno ' + dayNum + ' — ' + fmtDateLong(date) + '</div>' +
+          groups[date].map(function(s){
+            return '<div class="print-stop"><span class="t">' + esc(s.time||'') + '</span><span>' + esc(s.title) + (s.note ? ' — ' + esc(s.note) : '') + '</span></div>';
+          }).join('') +
+        '</div>';
+      }).join('');
+    }
+    html += '</div>';
+
+    html += '<div class="print-section"><h3>Budget</h3>' +
+      '<p>Speso ' + fmtMoney(totalSpent, trip.currency) + ' di ' + (planned>0?fmtMoney(planned, trip.currency):'budget non impostato') + '</p>';
+    if (trip.expenses.length){
+      html += '<table class="print-table"><thead><tr><th>Data</th><th>Categoria</th><th>Descrizione</th><th>Importo</th></tr></thead><tbody>' +
+        trip.expenses.slice().sort(function(a,b){ return (a.date).localeCompare(b.date); }).map(function(e){
+          var catLabel = (EXP_CAT.find(function(c){return c.v===e.category;})||{}).l || e.category;
+          return '<tr><td>' + fmtDateShort(e.date) + '</td><td>' + catLabel + '</td><td>' + esc(e.description) + '</td><td>' + fmtMoney(e.amount, trip.currency) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    html += '</div>';
+
+    html += '<div class="print-section"><h3>Checklist (' + checkDone + '/' + trip.checklist.length + ')</h3>';
+    if (!trip.checklist.length){ html += '<p>Nessuna voce.</p>'; }
+    else {
+      html += CHK_CAT.map(function(cat){
+        var items = trip.checklist.filter(function(c){return c.category===cat.v;});
+        if (!items.length) return '';
+        return '<div style="margin-bottom:8px;"><strong style="font-size:.82rem;">' + cat.l + '</strong>' +
+          items.map(function(it){ return '<div class="print-check">' + (it.done?'☑':'☐') + ' ' + esc(it.text) + '</div>'; }).join('') +
+        '</div>';
+      }).join('');
+    }
+    html += '</div>';
+
+    html += '<div class="print-section"><h3>Prenotazioni</h3>';
+    if (!trip.bookings.length){ html += '<p>Nessuna prenotazione salvata.</p>'; }
+    else {
+      html += trip.bookings.map(function(b){
+        var typeLabel = (BOOK_TYPE.find(function(x){return x.v===b.type;})||{}).l || b.type;
+        return '<div class="print-stop"><span class="t">' + typeLabel + '</span><span>' + esc(b.title) + (b.provider?' — '+esc(b.provider):'') + (b.date?' — '+fmtDateShort(b.date):'') + (b.reference?' — Rif. '+esc(b.reference):'') + '</span></div>';
+      }).join('');
+    }
+    html += '</div>';
+
+    if (trip.category==='altro' && trip.relocation){
+      var r = trip.relocation;
+      html += '<div class="print-section"><h3>Trasferimento</h3>' +
+        '<p>Stipendio ' + fmtMoney(r.salary||0, trip.currency) + ' · Budget di partenza ' + fmtMoney(r.startingBudget||0, trip.currency) + ' · Costo della vita ' + fmtMoney(r.costOfLiving||0, trip.currency) + '</p>' +
+        (r.notes ? '<p>' + esc(r.notes) + '</p>' : '') +
+      '</div>';
+    }
+
+    return html;
+  }
+
+  function tabBtn(key,label,badge,warn){
+    var active = state.activeTab===key ? ' active' : '';
+    var b = (badge!==null && badge!=='') ? (' <span class="mono" style="color:var(--muted);font-weight:500;">(' + badge + ')</span>') : '';
+    var w = warn ? ' <span class="tab-warn" title="In scadenza"></span>' : '';
+    return '<button class="tab' + active + '" data-action="set-tab" data-tab="' + key + '">' + label + b + w + '</button>';
+  }
+
+  // Checklist reminder: true when the trip departs soon and there are still open items.
+  function checklistNeedsAttention(trip){
+    if (trip.completed) return false;
+    var status = tripStatus(trip);
+    if (status!=='futuro' && status!=='corso') return false;
+    var daysTo = dayDiff(todayStr(), trip.startDate);
+    if (status==='futuro' && daysTo>7) return false;
+    return trip.checklist.some(function(c){ return !c.done; });
+  }
+
+  function renderPanel(trip){
+    if (state.activeTab==='itinerario') return panelItinerario(trip);
+    if (state.activeTab==='budget') return panelBudget(trip);
+    if (state.activeTab==='checklist') return panelChecklist(trip);
+    if (state.activeTab==='trasferimento' && trip.category==='altro') return panelTrasferimento(trip);
+    return panelPrenotazioni(trip);
+  }
+
+  var trashIcon = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function delBtn(kind,id){
+    var isConfirm = state.confirmDeleteItem && state.confirmDeleteItem.kind===kind && state.confirmDeleteItem.id===id;
+    if (isConfirm){
+      return '<span class="confirm-row"><button class="btn btn-danger btn-sm" data-action="confirm-delete-item" data-kind="' + kind + '" data-id="' + id + '">Conferma</button>' +
+        '<button class="btn btn-ghost btn-sm" data-action="cancel-delete-item">Annulla</button></span>';
+    }
+    return '<button class="icon-btn" data-action="ask-delete-item" data-kind="' + kind + '" data-id="' + id + '" aria-label="Elimina">' + trashIcon + '</button>';
+  }
+
+  /* ---- itinerario ---- */
+  function panelItinerario(trip){
+    var stops = trip.itinerary.slice().sort(function(a,b){
+      return (a.date+a.time).localeCompare(b.date+b.time);
+    });
+    var groups = {}, order = [];
+    stops.forEach(function(s){
+      if (!groups[s.date]){ groups[s.date]=[]; order.push(s.date); }
+      groups[s.date].push(s);
+    });
+    var html = '<div class="card">';
+    if (!order.length){
+      html += '<div class="empty-row">Nessuna tappa in programma. Aggiungine una qui sotto.</div>';
+    } else {
+      html += order.map(function(date){
+        var dayNum = dayDiff(trip.startDate, date) + 1;
+        return '<div class="day-group">' +
+          '<div class="day-head"><span class="day-num mono">Giorno ' + dayNum + '</span><span class="day-date">' + fmtDateLong(date) + '</span></div>' +
+          groups[date].map(function(s){
+            return '<div class="stop">' +
+              '<div class="stop-time mono">' + esc(s.time||'') + '</div>' +
+              '<div class="stop-body"><div class="stop-title">' + esc(s.title) + '</div>' +
+              (s.note ? '<div class="stop-note">' + esc(s.note) + '</div>' : '') + '</div>' +
+              '<div class="row-actions">' + delBtn('stop', s.id) + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }).join('');
+    }
+    html += '</div>';
+
+    html += '<form class="add-form" data-form="add-stop" data-trip="' + trip.id + '">' +
+      '<div class="section-title">Aggiungi tappa</div>' +
+      '<div class="form-grid">' +
+        field('date','Data','date',{value:trip.startDate, min:trip.startDate, max:trip.endDate, required:true}) +
+        field('time','Ora','time',{required:true}) +
+        field('title','Cosa','text',{placeholder:'Es. Check-in hotel', required:true}) +
+      '</div>' +
+      field('note','Note (facoltativo)','text',{placeholder:'Dettagli utili'}) +
+      '<div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">Aggiungi tappa</button></div>' +
+    '</form>';
+    return html;
+  }
+
+  /* ---- budget ---- */
+  function computeBalances(trip){
+    var participants = trip.participants || [];
+    var totals = {};
+    participants.forEach(function(p){ totals[p.id] = {paid:0, owed:0}; });
+    (trip.expenses||[]).forEach(function(e){
+      var amount = Number(e.amount)||0;
+      if (e.paidBy && totals[e.paidBy]) totals[e.paidBy].paid += amount;
+      var split = (Array.isArray(e.splitWith) ? e.splitWith : []).filter(function(id){ return totals[id]; });
+      if (split.length){
+        var share = amount / split.length;
+        split.forEach(function(id){ totals[id].owed += share; });
+      }
+    });
+    return participants.map(function(p){
+      var t = totals[p.id] || {paid:0, owed:0};
+      return { id:p.id, name:p.name, paid:t.paid, owed:t.owed, balance: t.paid - t.owed };
+    });
+  }
+
+  function computeSettlements(balances){
+    var creditors = balances.filter(function(b){ return b.balance>0.005; })
+      .map(function(b){ return {name:b.name, amt:b.balance}; }).sort(function(a,b){ return b.amt-a.amt; });
+    var debtors = balances.filter(function(b){ return b.balance<-0.005; })
+      .map(function(b){ return {name:b.name, amt:-b.balance}; }).sort(function(a,b){ return b.amt-a.amt; });
+    var result = [], i=0, j=0;
+    while (i<debtors.length && j<creditors.length){
+      var pay = Math.min(debtors[i].amt, creditors[j].amt);
+      if (pay>0.005) result.push({from:debtors[i].name, to:creditors[j].name, amount:pay});
+      debtors[i].amt -= pay; creditors[j].amt -= pay;
+      if (debtors[i].amt<=0.005) i++;
+      if (creditors[j].amt<=0.005) j++;
+    }
+    return result;
+  }
+
+  function panelBudget(trip){
+    var participants = trip.participants || [];
+    var totalSpent = trip.expenses.reduce(function(s,e){ return s + (Number(e.amount)||0); },0);
+    var planned = Number(trip.budgetPlanned)||0;
+    var pct = planned>0 ? (totalSpent/planned*100) : 0;
+    var statusColor = 'var(--good)', statusText = 'nella norma', barColor='var(--accent)';
+    if (planned>0 && pct>=100){ statusColor='var(--critical)'; statusText='budget superato'; barColor='var(--critical)'; }
+    else if (planned>0 && pct>=80){ statusColor='var(--warning)'; statusText='in avvicinamento al limite'; barColor='var(--warning)'; }
+
+    var byCat = {};
+    EXP_CAT.forEach(function(c){ byCat[c.v]=0; });
+    trip.expenses.forEach(function(e){ byCat[e.category] = (byCat[e.category]||0) + (Number(e.amount)||0); });
+    var maxCat = Math.max.apply(null, EXP_CAT.map(function(c){return byCat[c.v];}).concat([1]));
+
+    var html = '<div class="card">' +
+      '<div class="section-title">Riepilogo spese</div>' +
+      '<div class="budget-summary">' +
+        '<div class="budget-figure">' + fmtMoney(totalSpent, trip.currency) + ' <span class="of">di ' + (planned>0?fmtMoney(planned, trip.currency):'— non impostato') + '</span></div>' +
+        '<div class="status-label" style="color:' + statusColor + '"><span class="status-dot" style="background:' + statusColor + '"></span>' + statusText + '</div>' +
+      '</div>' +
+      '<div class="meter"><div style="width:' + clamp(pct,0,100) + '%;background:' + barColor + ';"></div></div>' +
+      '<form class="budget-editrow" data-form="set-budget" data-trip="' + trip.id + '">' +
+        '<label for="budgetPlanned">Budget pianificato</label>' +
+        '<input type="number" min="0" step="1" id="budgetPlanned" name="budgetPlanned" value="' + (trip.budgetPlanned||'') + '">' +
+        '<button class="btn btn-ghost btn-sm" type="submit">Salva</button>' +
+      '</form>' +
+    '</div>';
+
+    html += '<div class="card" style="margin-top:14px;"><div class="section-title">Partecipanti</div>' +
+      (participants.length ? '<div class="participant-list">' +
+        participants.map(function(p){
+          return '<div class="participant-row"><span>' + esc(p.name) + '</span>' + delBtn('participant', p.id) + '</div>';
+        }).join('') +
+      '</div>' : '<div class="empty-row">Aggiungi le persone con cui condividi il viaggio per dividere le spese.</div>') +
+      '<form class="inline-add-form" data-form="add-participant" data-trip="' + trip.id + '">' +
+        '<input type="text" name="name" placeholder="Nome" required>' +
+        '<button class="btn btn-ghost btn-sm" type="submit">Aggiungi</button>' +
+      '</form>' +
+    '</div>';
+
+    if (participants.length>=2){
+      var balances = computeBalances(trip);
+      var settle = computeSettlements(balances);
+      html += '<div class="card" style="margin-top:14px;"><div class="section-title">Saldi tra partecipanti</div><div class="balance-list">' +
+        balances.map(function(b){
+          var color = b.balance>0.005?'var(--good)':(b.balance<-0.005?'var(--critical)':'var(--muted)');
+          var label = b.balance>0.005 ? ('deve ricevere ' + fmtMoney(b.balance, trip.currency))
+            : (b.balance<-0.005 ? ('deve dare ' + fmtMoney(-b.balance, trip.currency)) : 'in pari');
+          return '<div class="balance-row"><span>' + esc(b.name) + '</span><span class="mono" style="color:' + color + ';font-weight:700;">' + label + '</span></div>';
+        }).join('') +
+      '</div>' +
+      (settle.length ? '<div class="settle-list">' + settle.map(function(s){
+        return '<div class="settle-row"><span>' + esc(s.from) + ' <span style="color:var(--muted);">→</span> ' + esc(s.to) + '</span><span class="mono">' + fmtMoney(s.amount, trip.currency) + '</span></div>';
+      }).join('') + '</div>' : '') +
+      '</div>';
+    }
+
+    var catRows = EXP_CAT.map(function(c){ return {l:c.l, v:byCat[c.v]}; }).sort(function(a,b){ return b.v-a.v; });
+    html += '<div class="card" style="margin-top:14px;"><div class="section-title">Per categoria</div><div class="cat-breakdown">' +
+      catRows.map(function(c){
+        var v = c.v;
+        var share = totalSpent>0 ? Math.round(v/totalSpent*100) : 0;
+        return '<div class="cat-row"><span class="cat-name">' + c.l + '</span>' +
+          '<span class="cat-bar-track"><span class="cat-bar-fill" style="width:' + (v/maxCat*100) + '%"></span></span>' +
+          '<span class="cat-amt mono">' + fmtMoney(v, trip.currency) + (totalSpent>0 ? ' <span style="color:var(--muted);font-weight:600;">· ' + share + '%</span>' : '') + '</span></div>';
+      }).join('') +
+    '</div></div>';
+
+    var expensesSorted = trip.expenses.slice().sort(function(a,b){ return (b.date).localeCompare(a.date); });
+    html += '<div class="card" style="margin-top:14px;"><div class="section-title">Spese registrate</div>';
+    if (!expensesSorted.length){
+      html += '<div class="empty-row">Nessuna spesa registrata.</div>';
+    } else {
+      html += '<div class="table-wrap"><table class="list-table"><thead><tr><th>Data</th><th>Categoria</th><th>Descrizione</th>' +
+        (participants.length ? '<th>Pagato da</th>' : '') + '<th>Importo</th><th></th></tr></thead><tbody>' +
+        expensesSorted.map(function(e){
+          var catLabel = (EXP_CAT.find(function(c){return c.v===e.category;})||{}).l || e.category;
+          var payerName = e.paidBy ? ((participants.find(function(p){return p.id===e.paidBy;})||{}).name || '—') : '—';
+          return '<tr><td class="mono">' + fmtDateShort(e.date) + '</td><td>' + catLabel + '</td><td>' + esc(e.description) + '</td>' +
+            (participants.length ? '<td>' + esc(payerName) + '</td>' : '') +
+            '<td class="amt-cell mono">' + fmtMoney(e.amount, trip.currency) + '</td><td>' + delBtn('expense', e.id) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    html += '<form class="add-form" data-form="add-expense" data-trip="' + trip.id + '">' +
+      '<div class="section-title">Aggiungi spesa</div>' +
+      '<div class="form-grid">' +
+        field('date','Data','date',{value:todayStr(), required:true}) +
+        selectField('category','Categoria', EXP_CAT) +
+        field('description','Descrizione','text',{placeholder:'Es. Biglietto treno', required:true}) +
+        field('amount','Importo (€)','number',{step:'0.01', min:'0', required:true}) +
+        (participants.length ? selectField('paidBy','Pagato da', [{v:'',l:'Non specificato'}].concat(participants.map(function(p){return {v:p.id,l:p.name};})), '') : '') +
+      '</div>' +
+      (participants.length ? '<div class="field"><label>Diviso tra</label><div class="split-checks">' +
+        participants.map(function(p){
+          return '<label class="split-check"><input type="checkbox" name="splitWith" value="' + p.id + '" checked> ' + esc(p.name) + '</label>';
+        }).join('') +
+      '</div></div>' : '') +
+      '<div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">Aggiungi spesa</button></div>' +
+    '</form>';
+    return html;
+  }
+
+  /* ---- checklist ---- */
+  function panelChecklist(trip){
+    var done = trip.checklist.filter(function(c){return c.done;}).length;
+    var total = trip.checklist.length;
+    var open = total - done;
+    var pct = total ? (done/total*100) : 0;
+    var html = '';
+    if (checklistNeedsAttention(trip)){
+      var status = tripStatus(trip);
+      var daysTo = dayDiff(todayStr(), trip.startDate);
+      var when = status==='corso' ? 'Il viaggio è già in corso' : (daysTo<=0 ? 'Si parte oggi' : 'Si parte tra ' + daysTo + ' giorn' + (daysTo===1?'o':'i'));
+      html += '<div class="reminder-banner">' +
+        '<svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4.5M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10.6 4.3 2.9 18a1.7 1.7 0 0 0 1.5 2.5h15.2a1.7 1.7 0 0 0 1.5-2.5L13.4 4.3a1.7 1.7 0 0 0-2.8 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>' +
+        '<p>' + when + ' e hai ancora <strong>' + open + (open===1?' voce':' voci') + '</strong> da completare in checklist.</p>' +
+      '</div>';
+    }
+    html += '<div class="card">' +
+      '<div class="check-progress"><span class="mono" style="font-size:.82rem;color:var(--ink-2);white-space:nowrap;">' + done + '/' + total + ' completati</span>' +
+      '<div class="meter"><div style="width:' + pct + '%;background:var(--accent);"></div></div></div>';
+
+    if (!total){
+      html += '<div class="empty-row">Nessuna voce in checklist. Aggiungine una qui sotto.</div>';
+    } else {
+      html += CHK_CAT.map(function(cat){
+        var items = trip.checklist.filter(function(c){return c.category===cat.v;});
+        if (!items.length) return '';
+        return '<div class="check-group"><div class="section-title">' + cat.l + '</div>' +
+          items.map(function(it){
+            var cid = 'chk-' + it.id;
+            return '<div class="check-item' + (it.done?' done':'') + '">' +
+              '<input type="checkbox" id="' + cid + '" data-action="toggle-check" data-trip="' + trip.id + '" data-id="' + it.id + '" ' + (it.done?'checked':'') + '>' +
+              '<label for="' + cid + '">' + esc(it.text) + '</label>' +
+              delBtn('check', it.id) +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }).join('');
+    }
+    html += '</div>';
+
+    html += '<form class="add-form" data-form="add-check" data-trip="' + trip.id + '">' +
+      '<div class="section-title">Aggiungi voce</div>' +
+      '<div class="form-grid">' +
+        selectField('category','Categoria', CHK_CAT) +
+        field('text','Cosa','text',{placeholder:'Es. Passaporto', required:true}) +
+      '</div>' +
+      '<div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">Aggiungi</button></div>' +
+    '</form>';
+    return html;
+  }
+
+  /* ---- trasferimento ---- */
+  function panelTrasferimento(trip){
+    var r = trip.relocation || defaultRelocation();
+    var salary = Number(r.salary)||0;
+    var costOfLiving = Number(r.costOfLiving)||0;
+    var startingBudget = Number(r.startingBudget)||0;
+    var margin = salary - costOfLiving;
+    var marginColor = margin>=0 ? 'var(--good)' : 'var(--critical)';
+    var runway = costOfLiving>0 ? (startingBudget/costOfLiving) : null;
+    var contractLabel = (CONTRACT_TYPES.find(function(c){return c.v===r.contractType;})||{}).l || 'Non specificato';
+
+    var html = '<div class="stat-grid" style="margin-top:0;">' +
+      '<div class="stat-tile"><div class="stat-label">Stipendio netto</div><div class="stat-value mono">' + fmtMoney(salary, trip.currency) + '</div><div class="stat-sub">al mese</div></div>' +
+      '<div class="stat-tile"><div class="stat-label">Costo della vita</div><div class="stat-value mono">' + fmtMoney(costOfLiving, trip.currency) + '</div><div class="stat-sub">stimato al mese</div></div>' +
+      '<div class="stat-tile"><div class="stat-label">Margine mensile</div><div class="stat-value mono" style="color:' + marginColor + '">' + (margin>=0?'+':'') + fmtMoney(margin, trip.currency) + '</div><div class="stat-sub">stipendio meno costo della vita</div></div>' +
+      '<div class="stat-tile"><div class="stat-label">Autonomia iniziale</div><div class="stat-value mono">' + (runway!==null ? runway.toFixed(1) : '—') + '</div><div class="stat-sub">' + (runway!==null ? 'mesi col budget di partenza' : 'imposta il costo della vita') + '</div></div>' +
+    '</div>';
+
+    html += '<div class="card" style="margin-top:14px;">' +
+      '<div class="section-title">Riepilogo</div>' +
+      '<div style="display:flex; flex-direction:column; gap:10px;">' +
+        '<div style="display:flex; justify-content:space-between; gap:12px;"><span style="color:var(--ink-2); font-weight:600; font-size:.84rem;">Budget di partenza</span><span class="mono" style="font-weight:700;">' + fmtMoney(startingBudget, trip.currency) + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; gap:12px;"><span style="color:var(--ink-2); font-weight:600; font-size:.84rem;">Tipo di contratto</span><span style="font-weight:700;">' + esc(contractLabel) + '</span></div>' +
+      '</div>' +
+      (r.notes ? '<div class="trip-notes" style="margin-top:12px;">' + esc(r.notes) + '</div>' : '') +
+    '</div>';
+
+    html += '<form class="add-form" data-form="set-relocation" data-trip="' + trip.id + '">' +
+      '<div class="section-title">Modifica dati del trasferimento</div>' +
+      '<div class="form-grid">' +
+        field('salary','Stipendio netto mensile','number',{value:r.salary||'', step:'0.01', min:'0'}) +
+        field('startingBudget','Budget di partenza','number',{value:r.startingBudget||'', step:'0.01', min:'0'}) +
+        field('costOfLiving','Costo della vita mensile stimato','number',{value:r.costOfLiving||'', step:'0.01', min:'0'}) +
+        selectField('contractType','Tipo di contratto', CONTRACT_TYPES, r.contractType||'') +
+      '</div>' +
+      '<div class="field" style="margin-top:12px;"><label for="f-relocationNotes">Note sul trasferimento</label>' +
+        '<textarea id="f-relocationNotes" name="notes" placeholder="Permessi, scadenze, referenze utili...">' + esc(r.notes||'') + '</textarea></div>' +
+      '<div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">Salva dati trasferimento</button></div>' +
+    '</form>';
+
+    return html;
+  }
+
+  /* ---- prenotazioni ---- */
+  function panelPrenotazioni(trip){
+    var sorted = trip.bookings.slice().sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
+    var html = '<div class="booking-list">';
+    if (!sorted.length){
+      html += '<div class="card"><div class="empty-row">Nessuna prenotazione salvata.</div></div>';
+    } else {
+      html += sorted.map(function(b){
+        var typeLabel = (BOOK_TYPE.find(function(t){return t.v===b.type;})||{}).l || b.type;
+        return '<div class="booking">' +
+          '<span class="booking-type mono">' + typeLabel.toUpperCase() + '</span>' +
+          '<div class="booking-body">' +
+            '<div class="booking-title">' + esc(b.title) + '</div>' +
+            '<div class="booking-sub">' + esc(b.provider||'') + (b.date ? ' · ' + fmtDateLong(b.date) : '') + '</div>' +
+            (b.reference ? '<div class="booking-ref mono">Rif. ' + esc(b.reference) + '</div>' : '') +
+            (b.note ? '<div class="booking-note">' + esc(b.note) + '</div>' : '') +
+            (b.link && /^https?:\/\//i.test(b.link) ? '<div class="booking-note"><a href="' + esc(b.link) + '" target="_blank" rel="noopener noreferrer">Apri conferma ↗</a></div>' : '') +
+          '</div>' +
+          '<div class="row-actions">' + delBtn('booking', b.id) + '</div>' +
+        '</div>';
+      }).join('');
+    }
+    html += '</div>';
+
+    html += '<form class="add-form" data-form="add-booking" data-trip="' + trip.id + '">' +
+      '<div class="section-title">Aggiungi prenotazione</div>' +
+      '<div class="form-grid">' +
+        selectField('type','Tipo', BOOK_TYPE) +
+        field('title','Titolo','text',{placeholder:'Es. Milano → Parigi', required:true}) +
+        field('provider','Fornitore','text',{placeholder:'Es. Trenitalia'}) +
+        field('date','Data','date',{}) +
+        field('reference','Codice prenotazione','text',{placeholder:'Es. ABC123'}) +
+        field('link','Link conferma (facoltativo)','url',{placeholder:'https://...'}) +
+      '</div>' +
+      field('note','Note (facoltativo)','text',{placeholder:'Dettagli utili'}) +
+      '<div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">Aggiungi prenotazione</button></div>' +
+    '</form>';
+    return html;
+  }
+
+  function field(name,label,type,opts){
+    opts = opts||{};
+    var attrs = Object.keys(opts).map(function(k){
+      if (opts[k]===true) return k;
+      if (opts[k]===false || opts[k]==null) return '';
+      return k + '="' + esc(opts[k]) + '"';
+    }).filter(Boolean).join(' ');
+    return '<div class="field"><label for="f-' + name + '">' + label + '</label>' +
+      '<input type="' + type + '" id="f-' + name + '" name="' + name + '" ' + attrs + '></div>';
+  }
+  function selectField(name,label,options,selected){
+    return '<div class="field"><label for="f-' + name + '">' + label + '</label>' +
+      '<select id="f-' + name + '" name="' + name + '">' +
+      options.map(function(o){ return '<option value="' + o.v + '"' + (o.v===selected?' selected':'') + '>' + o.l + '</option>'; }).join('') +
+      '</select></div>';
+  }
+
+  /* ---------------- modal ---------------- */
+  function renderModal(){
+    var host = document.getElementById('modal-host');
+    if (!state.modal){ host.innerHTML=''; return; }
+    var editing = state.modal.mode==='edit';
+    var t = state.modal.trip || {category:'svago', startDate:todayStr(), endDate:todayStr()};
+    host.innerHTML =
+      '<div class="modal-backdrop">' +
+        '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">' +
+          '<h3 id="modal-title" class="display">' + (editing ? 'Modifica viaggio' : 'Nuovo viaggio') + '</h3>' +
+          '<form data-form="trip-form">' +
+            '<div class="field" style="margin-bottom:12px;"><label for="tf-name">Nome del viaggio</label>' +
+              '<input type="text" id="tf-name" name="name" value="' + esc(t.name||'') + '" placeholder="Es. Vacanza in Sardegna" required></div>' +
+            '<div class="field" style="margin-bottom:12px;"><label>Categoria</label>' +
+              '<div class="radio-chips">' +
+                ['svago','lavoro','altro'].map(function(c){
+                  return '<label class="radio-chip"><input type="radio" name="category" value="' + c + '" ' + (t.category===c?'checked':'') + '><span><span class="dot cat-' + c + '"></span>' + CAT_LABEL[c] + '</span></label>';
+                }).join('') +
+              '</div></div>' +
+            '<div class="field" style="margin-bottom:12px;"><label for="tf-dest">Destinazione</label>' +
+              '<input type="text" id="tf-dest" name="destination" value="' + esc(t.destination||'') + '" placeholder="Es. Cagliari, Italia" required></div>' +
+            '<div class="form-grid" style="margin-bottom:12px;">' +
+              field('startDate','Data di partenza','date',{value:t.startDate, required:true}) +
+              field('endDate','Data di rientro','date',{value:t.endDate, required:true}) +
+              field('budgetPlanned','Budget pianificato','number',{value:t.budgetPlanned||'', step:'0.01', min:'0'}) +
+              selectField('currency','Valuta', CURRENCIES, t.currency||'EUR') +
+            '</div>' +
+            '<div class="field" style="margin-bottom:4px;"><label for="tf-notes">Note (facoltativo)</label>' +
+              '<textarea id="tf-notes" name="notes" placeholder="Promemoria, riferimenti, appunti">' + esc(t.notes||'') + '</textarea></div>' +
+            '<div class="form-actions">' +
+              '<button type="button" class="btn btn-ghost" data-action="close-modal">Annulla</button>' +
+              '<button type="submit" class="btn btn-primary">' + (editing?'Salva modifiche':'Crea viaggio') + '</button>' +
+            '</div>' +
+          '</form>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('tf-name').focus();
+  }
+
+  /* ---------------- render: view bar ---------------- */
+  function renderViewBar(){
+    var host = document.getElementById('view-bar');
+    host.style.display='block';
+    var ongoingCount = state.trips.filter(function(t){ return tripStatus(t)==='corso'; }).length;
+    var completedCount = state.trips.filter(function(t){ return tripStatus(t)==='concluso'; }).length;
+    var section = state.activeTripId ? null : (state.filterStatus==='corso' ? 'corso' : state.filterStatus==='concluso' ? 'concluso' : 'dashboard');
+    var items = [
+      { key:'dashboard', label:'Dashboard', count:0,
+        svg:'<rect x="3.5" y="3.5" width="7.2" height="7.2" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="13.3" y="3.5" width="7.2" height="7.2" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="3.5" y="13.3" width="7.2" height="7.2" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="13.3" y="13.3" width="7.2" height="7.2" rx="1.6" stroke="currentColor" stroke-width="1.6"/>' },
+      { key:'corso', label:'In corso', count:ongoingCount,
+        svg:'<circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 7.5V12l3.1 1.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' },
+      { key:'concluso', label:'Completati', count:completedCount,
+        svg:'<circle cx="12" cy="12" r="8.3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M8.2 12.3l2.5 2.5 5-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' }
+    ];
+    host.innerHTML = '<div class="view-bar-inner">' +
+      items.map(function(it){
+        return '<button class="view-btn' + (section===it.key?' active':'') + '" data-action="go-view" data-view="' + it.key + '">' +
+          '<svg viewBox="0 0 24 24" fill="none">' + it.svg + '</svg>' +
+          '<span>' + it.label + '</span>' +
+          (it.count ? '<span class="view-count">' + it.count + '</span>' : '') +
+        '</button>';
+      }).join('') +
+    '</div>';
+  }
+
+  /* ---------------- master render ---------------- */
+  function render(){
+    renderNotice();
+    renderRailTools();
+    renderTripList();
+    renderDossier();
+    renderModal();
+    renderViewBar();
+    var topbarBtn = document.getElementById('topbar-new-trip');
+    if (topbarBtn) topbarBtn.style.display = state.trips.length ? '' : 'none';
+  }
+
+  /* ---------------- events (delegation) ---------------- */
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-action]');
+    if (!t) return;
+    var action = t.getAttribute('data-action');
+
+    if (action==='open-new-trip'){ state.modal = {mode:'new'}; renderModal(); return; }
+    if (action==='edit-trip'){
+      var tr = findTrip(t.getAttribute('data-id'));
+      if (tr) { state.modal = {mode:'edit', trip:tr}; renderModal(); }
+      return;
+    }
+    if (action==='close-modal'){
+      state.modal = null; renderModal(); return;
+    }
+    if (action==='dismiss-notice'){ state.noticeDismissed = true; renderNotice(); return; }
+
+    if (action==='select-trip'){
+      state.activeTripId = t.getAttribute('data-id');
+      state.activeTab = 'itinerario';
+      state.confirmDeleteItem = null;
+      renderTripList(); renderDossier(); renderViewBar();
+      return;
+    }
+    if (action==='set-filter'){
+      state.filterStatus = t.getAttribute('data-filter');
+      renderRailTools(); renderTripList(); renderViewBar();
+      return;
+    }
+    if (action==='go-view'){
+      var view = t.getAttribute('data-view');
+      state.activeTripId = null;
+      state.search = '';
+      state.filterStatus = view==='dashboard' ? 'tutti' : view;
+      state.confirmDeleteTrip = null;
+      render();
+      return;
+    }
+    if (action==='duplicate-trip'){
+      var toClone = findTrip(t.getAttribute('data-id'));
+      if (toClone){ addTrip(cloneTrip(toClone)); }
+      return;
+    }
+    if (action==='export-trip'){
+      window.print();
+      return;
+    }
+    if (action==='export-backup'){
+      exportBackup();
+      return;
+    }
+    if (action==='import-backup'){
+      var fileInput = document.getElementById('backup-file-input');
+      if (fileInput) fileInput.click();
+      return;
+    }
+    if (action==='set-tab'){
+      state.activeTab = t.getAttribute('data-tab');
+      state.confirmDeleteItem = null;
+      renderDossier();
+      return;
+    }
+
+    if (action==='toggle-complete'){
+      mutateTrip(t.getAttribute('data-id'), function(tr){
+        tr.completed = !tr.completed;
+        if (tr.completed) tr.forcedOngoing = false;
+      });
+      return;
+    }
+    if (action==='toggle-ongoing'){
+      mutateTrip(t.getAttribute('data-id'), function(tr){
+        tr.forcedOngoing = !tr.forcedOngoing;
+        if (tr.forcedOngoing) tr.completed = false;
+      });
+      return;
+    }
+    if (action==='ask-delete-trip'){ state.confirmDeleteTrip = t.getAttribute('data-id'); renderDossier(); return; }
+    if (action==='cancel-delete-trip'){ state.confirmDeleteTrip = null; renderDossier(); return; }
+    if (action==='confirm-delete-trip'){ deleteTrip(t.getAttribute('data-id')); return; }
+
+    if (action==='ask-delete-item'){
+      state.confirmDeleteItem = {kind:t.getAttribute('data-kind'), id:t.getAttribute('data-id')};
+      renderDossier();
+      return;
+    }
+    if (action==='cancel-delete-item'){ state.confirmDeleteItem = null; renderDossier(); return; }
+    if (action==='confirm-delete-item'){
+      var kind = t.getAttribute('data-kind'), id = t.getAttribute('data-id');
+      var trip = findTrip(state.activeTripId);
+      if (trip){
+        var listKey = {stop:'itinerary', expense:'expenses', check:'checklist', booking:'bookings', participant:'participants'}[kind];
+        mutateTrip(trip.id, function(tr){
+          tr[listKey] = tr[listKey].filter(function(x){ return x.id!==id; });
+          if (kind==='participant'){
+            (tr.expenses||[]).forEach(function(e){
+              if (e.paidBy===id) e.paidBy = '';
+              if (Array.isArray(e.splitWith)) e.splitWith = e.splitWith.filter(function(pid){ return pid!==id; });
+            });
+          }
+        });
+      }
+      state.confirmDeleteItem = null;
+      renderDossier();
+      return;
+    }
+
+    if (action==='toggle-check'){
+      var tripId = t.getAttribute('data-trip'), itemId = t.getAttribute('data-id');
+      mutateTrip(tripId, function(tr){
+        var item = tr.checklist.find(function(c){return c.id===itemId;});
+        if (item) item.done = !item.done;
+      });
+      return;
+    }
+  });
+
+  document.addEventListener('submit', function(e){
+    var form = e.target.closest('form[data-form]');
+    if (!form) return;
+    e.preventDefault();
+    var kind = form.getAttribute('data-form');
+    var fd = new FormData(form);
+
+    if (kind==='trip-form'){
+      var data = Object.fromEntries(fd.entries());
+      if (state.modal.mode==='edit'){
+        mutateTrip(state.modal.trip.id, function(tr){
+          tr.name = data.name; tr.category = data.category; tr.destination = data.destination;
+          tr.startDate = data.startDate; tr.endDate = data.endDate; tr.currency = data.currency||'EUR';
+          tr.budgetPlanned = data.budgetPlanned ? Number(data.budgetPlanned) : 0;
+          tr.notes = data.notes;
+        });
+      } else {
+        addTrip({
+          id: uid(), name:data.name, category:data.category, destination:data.destination,
+          startDate:data.startDate, endDate:data.endDate, currency:data.currency||'EUR',
+          budgetPlanned: data.budgetPlanned ? Number(data.budgetPlanned) : 0,
+          notes:data.notes, itinerary:[], expenses:[], checklist:[], bookings:[], relocation:defaultRelocation(), participants:[],
+          completed:false, forcedOngoing:false, createdAt: new Date().toISOString()
+        });
+      }
+      state.modal = null;
+      render();
+      return;
+    }
+
+    var tripId = form.getAttribute('data-trip');
+    if (!tripId) return;
+
+    if (kind==='add-stop'){
+      var d = Object.fromEntries(fd.entries());
+      if (!d.title) return;
+      mutateTrip(tripId, function(tr){
+        tr.itinerary.push({id:uid(), date:d.date||tr.startDate, time:d.time||'', title:d.title, note:d.note||''});
+      });
+      form.reset();
+      return;
+    }
+    if (kind==='set-budget'){
+      var d2 = Object.fromEntries(fd.entries());
+      mutateTrip(tripId, function(tr){ tr.budgetPlanned = d2.budgetPlanned ? Number(d2.budgetPlanned) : 0; });
+      return;
+    }
+    if (kind==='add-expense'){
+      var d3 = Object.fromEntries(fd.entries());
+      if (!d3.description || !d3.amount) return;
+      var splitWith = fd.getAll('splitWith');
+      mutateTrip(tripId, function(tr){
+        tr.expenses.push({
+          id:uid(), date:d3.date||todayStr(), category:d3.category||'altro', description:d3.description, amount:Number(d3.amount)||0,
+          paidBy: d3.paidBy||'', splitWith: splitWith
+        });
+      });
+      form.reset();
+      return;
+    }
+    if (kind==='add-participant'){
+      var d3b = Object.fromEntries(fd.entries());
+      if (!d3b.name || !String(d3b.name).trim()) return;
+      mutateTrip(tripId, function(tr){
+        tr.participants = tr.participants || [];
+        tr.participants.push({id:uid(), name:String(d3b.name).trim()});
+      });
+      form.reset();
+      return;
+    }
+    if (kind==='add-check'){
+      var d4 = Object.fromEntries(fd.entries());
+      if (!d4.text) return;
+      mutateTrip(tripId, function(tr){
+        tr.checklist.push({id:uid(), category:d4.category||'da_fare', text:d4.text, done:false});
+      });
+      form.reset();
+      return;
+    }
+    if (kind==='add-booking'){
+      var d5 = Object.fromEntries(fd.entries());
+      if (!d5.title) return;
+      mutateTrip(tripId, function(tr){
+        tr.bookings.push({id:uid(), type:d5.type||'altro', title:d5.title, provider:d5.provider||'', date:d5.date||'', reference:d5.reference||'', link:d5.link||'', note:d5.note||''});
+      });
+      form.reset();
+      return;
+    }
+    if (kind==='set-relocation'){
+      var d6 = Object.fromEntries(fd.entries());
+      mutateTrip(tripId, function(tr){
+        tr.relocation = {
+          salary: d6.salary ? Number(d6.salary) : 0,
+          startingBudget: d6.startingBudget ? Number(d6.startingBudget) : 0,
+          costOfLiving: d6.costOfLiving ? Number(d6.costOfLiving) : 0,
+          contractType: d6.contractType || '',
+          notes: d6.notes || ''
+        };
+      });
+      return;
+    }
+  });
+
+  document.addEventListener('input', function(e){
+    if (e.target && e.target.id==='trip-search'){
+      state.search = e.target.value;
+      renderTripList();
+    }
+  });
+
+  document.addEventListener('mousedown', function(e){
+    var backdrop = e.target.closest('.modal-backdrop');
+    if (backdrop && e.target===backdrop){ state.modal = null; renderModal(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key==='Escape' && state.modal){ state.modal=null; renderModal(); }
+  });
+
+  /* ---------------- backup: export / import ---------------- */
+  function backupStatus(msg, isError){
+    var el = document.getElementById('backup-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--critical)' : 'var(--good)';
+  }
+
+  function exportBackup(){
+    var payload = {
+      app: 'bussola', version: 1, exportedAt: new Date().toISOString(),
+      trips: state.trips
+    };
+    var json = JSON.stringify(payload, null, 2);
+    var filename = 'bussola-backup-' + todayStr() + '.json';
+
+    if (downloadsCap){
+      downloadsCap.save({ filename: filename, data: json })
+        .then(function(){
+          backupStatus('Backup scaricato (' + state.trips.length + (state.trips.length===1?' viaggio':' viaggi') + ').', false);
+        })
+        .catch(function(err){
+          var msg = (err && err.code==='declined') ? 'Download annullato.' : 'Non è stato possibile scaricare il backup.';
+          backupStatus(msg, true);
+        });
+      return;
+    }
+
+    // Outside the Claude artifact viewer (standalone PWA / self-hosted page)
+    // a normal browser download works fine.
+    if (typeof Blob==='function' && typeof URL!=='undefined' && URL.createObjectURL){
+      try {
+        var blob = new Blob([json], {type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        backupStatus('Backup scaricato (' + state.trips.length + (state.trips.length===1?' viaggio':' viaggi') + ').', false);
+        return;
+      } catch(e){ /* fall through */ }
+    }
+    backupStatus('Il download non è disponibile in questa visualizzazione.', true);
+  }
+
+  function sanitizeImportedTrip(raw){
+    function cloneList(list){
+      return (Array.isArray(list)?list:[]).map(function(it){
+        var c = Object.assign({}, it); c.id = uid(); return c;
+      });
+    }
+    if (!raw || typeof raw!=='object' || !raw.name || !raw.startDate || !raw.endDate) return null;
+    var participantMap = {};
+    var participants = (Array.isArray(raw.participants)?raw.participants:[]).map(function(p){
+      var np = Object.assign({}, p); np.id = uid(); if (p && p.id) participantMap[p.id] = np.id; return np;
+    });
+    var expenses = (Array.isArray(raw.expenses)?raw.expenses:[]).map(function(e){
+      var c = Object.assign({}, e); c.id = uid();
+      c.paidBy = (e.paidBy && participantMap[e.paidBy]) ? participantMap[e.paidBy] : '';
+      c.splitWith = (Array.isArray(e.splitWith)?e.splitWith:[]).map(function(id){ return participantMap[id]; }).filter(Boolean);
+      return c;
+    });
+    return {
+      id: uid(), isExample:false, name:String(raw.name), category: raw.category||'svago',
+      destination: String(raw.destination||''), startDate: raw.startDate, endDate: raw.endDate,
+      currency: raw.currency||'EUR', budgetPlanned: Number(raw.budgetPlanned)||0, notes: raw.notes||'',
+      itinerary: cloneList(raw.itinerary), expenses: expenses,
+      checklist: cloneList(raw.checklist), bookings: cloneList(raw.bookings),
+      relocation: Object.assign(defaultRelocation(), raw.relocation||{}),
+      participants: participants,
+      completed: !!raw.completed, forcedOngoing: !!raw.forcedOngoing,
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  function importBackupFile(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var imported;
+      try { imported = JSON.parse(String(reader.result)); }
+      catch(e){ backupStatus('File non valido: non è un backup Bussola leggibile.', true); return; }
+      var rawTrips = Array.isArray(imported) ? imported : (Array.isArray(imported && imported.trips) ? imported.trips : null);
+      if (!rawTrips){ backupStatus('File non valido: non è un backup Bussola leggibile.', true); return; }
+      var added = 0;
+      rawTrips.forEach(function(raw){
+        var trip = sanitizeImportedTrip(raw);
+        if (trip){ state.trips.push(trip); queueSave(trip); added++; }
+      });
+      if (!added){ backupStatus('Nessun viaggio valido trovato in questo file.', true); return; }
+      state.search = ''; state.filterStatus = 'tutti'; state.activeTripId = null;
+      render();
+      backupStatus(added===1 ? 'Importato 1 viaggio.' : 'Importati ' + added + ' viaggi.', false);
+    };
+    reader.readAsText(file);
+  }
+
+  var backupFileInput = document.getElementById('backup-file-input');
+  if (backupFileInput){
+    backupFileInput.addEventListener('change', function(){
+      var file = backupFileInput.files && backupFileInput.files[0];
+      if (file) importBackupFile(file);
+      backupFileInput.value = '';
+    });
+  }
+
+  /* ---------------- boot ---------------- */
+  function tryLocalStorageFallback(){
+    var supported = false;
+    try {
+      var testKey = '__bussola_test__';
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+      supported = true;
+    } catch(e){ supported = false; }
+
+    if (supported){
+      state.storageMode = 'local';
+      state.dbAvailable = false;
+      state.trips = loadLocal();
+    } else {
+      state.storageMode = 'none';
+      state.dbAvailable = false;
+      state.trips = exampleTrips();
+    }
+    render();
+  }
+
+  function boot(){
+    render();
+    if (!window.claude || !window.claude.use){
+      tryLocalStorageFallback();
+      return;
+    }
+    window.claude.use('downloads').then(function(ns){ downloadsCap = ns; }).catch(function(){ downloadsCap = null; });
+    window.claude.use('db').then(function(ns){
+      if (!ns){
+        tryLocalStorageFallback();
+        return;
+      }
+      db = ns;
+      state.dbAvailable = true;
+      state.storageMode = 'cloud';
+      tripsCol = db.collection('trips');
+
+      tripsCol.onSnapshot(function(snap){
+        state.trips = snap.docs.map(function(d){
+          var data = d.data() || {};
+          data.id = d.id;
+          data.itinerary = data.itinerary || [];
+          data.expenses = data.expenses || [];
+          data.checklist = data.checklist || [];
+          data.bookings = data.bookings || [];
+          data.participants = data.participants || [];
+          data.relocation = Object.assign(defaultRelocation(), data.relocation||{});
+          data.completed = !!data.completed;
+          data.forcedOngoing = !!data.forcedOngoing;
+          return data;
+        });
+        render();
+      }, function(err){
+        console.warn('Sincronizzazione non disponibile', err);
+      });
+
+      // Example trips are no longer auto-created: the list starts empty so
+      // only trips the person actually adds show up. One-time cleanup also
+      // removes any example trips a previous version of the app seeded in.
+      db.doc('meta/examples_removed').get().then(function(snap){
+        if (!snap.exists){
+          tripsCol.get().then(function(colSnap){
+            (colSnap.docs||[]).forEach(function(d){
+              var data = (d.data && d.data()) || {};
+              if (data.isExample) tripsCol.doc(d.id).delete();
+            });
+          }).catch(function(){ /* cleanup is best-effort */ });
+          db.doc('meta/examples_removed').set({ removedAt: new Date().toISOString() });
+        }
+      }).catch(function(){ /* cleanup is best-effort */ });
+    }).catch(function(){
+      tryLocalStorageFallback();
+    });
+  }
+
+  if (document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+
+<script>
+  // Registers the service worker so the app is installable and works offline.
+  // No-op when served through the Claude artifact viewer (relative path
+  // simply won't resolve to anything meaningful there).
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(){ /* offline support is best-effort */ });
+    });
+  }
+</script>
+
+</body>
+</html>
